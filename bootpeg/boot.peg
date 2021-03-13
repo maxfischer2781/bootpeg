@@ -1,0 +1,58 @@
+# minimal EBNF+Actions PEG parser
+# manually maintained, should be in sync with ebnf.peg and peg.py
+digit:
+    | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" { .0 }
+alpha:
+    | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" { .0 }
+symbol:
+    | "!" | "#" | "$" | "%" | "&" | "(" | ")" | "*" | "+" | "," | "-" | "." | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\" | "]" | "^" | "_" | "`" | "{" | "|" | "}" | "~" { .0 }
+spaces:
+    | " "+ {}
+    | " " {}
+identifier:
+    | ( alpha | "_" )+ { .* }
+
+literal:
+    | '"' ( alpha | digit | symbol | " " | "'" )+ '"' { Regex(re.escape(.*)) }
+    | "'" ( alpha | digit | symbol | " " | "'" )+ "'" { Regex(re.escape(.*)) }
+regex:
+    | "r" '"' ( alpha | digit | symbol | " " | "'" )+ '"' { Regex(.*) }
+    | "r" "'" ( alpha | digit | symbol | " " | "'" )+ "'" { Regex(.*) }
+
+group:
+    | "(" sub=expr ")" { .sub }
+choice:
+    | first=expr spaces "|" spaces else=expr { .first | .else }
+chain:
+    | expr spaces expr { .0 + .2 }
+option:
+    | "[" spaces base=expr spaces "]" { Maybe(.base) }
+repeat:
+    | expr spaces "*" { .0[0:] }
+    | expr spaces "+" { .0[1:] }
+require:
+    | "~" spaces expr { ~.0 }
+capture:
+    | identifier spaces "=" spaces expr { Capture(.0, .1) }
+reference:
+    | identifier { ForwardReference(.0) }
+expr:
+    | choice | group | chain | option | repeat | require | capture | reference | literal | regex { .0 }
+
+rule:
+    | "|" spaces expr spaces action { Rule(.2, .3) }
+    | "|" spaces expr { Rule(.2) }
+action:
+    | "{" spaces body=r"[^}]*" spaces "}" { Action(.body) }
+
+comment:
+    | r"#.*?" ENDLINE {}
+empty:
+    | spaces ENDLINE {}
+define:
+    | name=identifier ":" spaces ENDLINE rules=rules { Define(.name, .rules) }
+rules:
+    | " " spaces first=rule spaces ENDLINE else=rules { .first | .else }
+    | " " spaces rule spaces ENDLINE { .0 }
+top:
+    | ( comment | define | empty )+ { .* }
