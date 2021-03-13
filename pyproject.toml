@@ -1,0 +1,16 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "bootpeg"
+author = "Max Fischer"
+author-email = "maxfischer2781@gmail.com"
+home-page = "https://github.com/maxfischer2781/bootpeg"
+description-file = "README.rst"
+keywords = "parser peg pep617"
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+]
