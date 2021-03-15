@@ -47,7 +47,9 @@ class MemoTable(Generic[D]):
         try:
             return self._matches[item]
         except KeyError:
-            if isinstance(item.clause, Not):
+            if isinstance(item.clause, Anything):
+                return item.clause.match(self._source, item.position, self)
+            elif isinstance(item.clause, Not):
                 match = item.clause.match(self._source, item.position, self)
                 if match is not None:
                     self._matches[item] = match
@@ -84,17 +86,17 @@ class Clause(Generic[D]):
     def match(self, source: D, at: int, memo: MemoTable) -> Optional[Match]:
         raise NotImplementedError(f"Method bind for {self.__class__.__name__}")
 
-    def bind(self, clauses: 'Dict[str, Clause[D]]', seen: 'Optional[Set[Clause[D]]]'):
+    def bind(self, clauses: 'Dict[str, Clause[D]]'):
         """Bind this clause into the context of ``clauses`` inplace"""
         for clause in self.sub_clauses:
-            clause.bind(clauses, seen)
+            clause.bind(clauses)
 
 
 class Terminal(Clause[D]):
     __slots__ = ()
     sub_clauses = ()
 
-    def bind(self, clauses, seen):
+    def bind(self, clauses):
         pass
 
 
@@ -118,6 +120,56 @@ def postorder_dfs(*bases: Clause[D], _seen: Optional[Set[Clause[D]]] = None) -> 
 
 
 # Specific Grammar elements
+class Nothing(Terminal[D]):
+    """
+    The empty literal, matches at any point consuming nothing
+    """
+    maybe_zero = True
+
+    def match(self, source: D, at: int, memo: MemoTable):
+        return empty_match
+
+    def __eq__(self, other):
+        return isinstance(other, Nothing)
+
+    def __hash__(self):
+        return hash(Nothing)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
+    def __str__(self):
+        return "ε"
+
+
+class Anything(Terminal[D]):
+    """
+    Any literal, matches at any point with sufficient remainder
+    """
+    __slots__ = ('length',)
+    maybe_zero = False
+
+    def __init__(self, length=1):
+        self.length = length
+
+    def match(self, source: D, at: int, memo: MemoTable):
+        if at + self.length < len(source):
+            return Match(self.length, ())
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, Anything) and self.length == other.length
+
+    def __hash__(self):
+        return hash(self.length)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.length})"
+
+    def __str__(self):
+        return "." * self.length
+
+
 class Literal(Terminal[D]):
     __slots__ = ('value',)
     maybe_zero = False
@@ -140,9 +192,20 @@ class Literal(Terminal[D]):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.value!r})"
 
+    def __str__(self):
+        return repr(self.value)
+
 
 class Sequence(Clause[D]):
     __slots__ = ('sub_clauses', '_maybe_zero')
+
+    @property
+    def maybe_zero(self):
+        if self._maybe_zero is None:
+            self._maybe_zero = all(
+                clause.maybe_zero for clause in self.sub_clauses
+            )
+        return self._maybe_zero
 
     @property
     def triggers(self) -> 'Tuple[Clause[D], ...]':
@@ -154,6 +217,7 @@ class Sequence(Clause[D]):
 
     def __init__(self, *sub_clauses: Clause[D]):
         self.sub_clauses = sub_clauses
+        self._maybe_zero = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         offset, matches = at, ()
@@ -174,6 +238,12 @@ class Sequence(Clause[D]):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({', '.join(map(repr, self.sub_clauses))})"
+
+    def __str__(self):
+        return ' '.join(
+            str(cl) if isinstance(cl, Terminal) else f"({cl})"
+            for cl in self.sub_clauses
+        )
 
 
 class Choice(Clause[D]):
@@ -210,12 +280,19 @@ class Choice(Clause[D]):
     def __repr__(self):
         return f"{self.__class__.__name__}({', '.join(map(repr, self.sub_clauses))})"
 
+    def __str__(self):
+        return ' / '.join(
+            str(cl) if isinstance(cl, Terminal) else f"({cl})"
+            for cl in self.sub_clauses
+        )
+
 
 class Repeat(Clause[D]):
     __slots__ = ('_sub_clause',)
 
     @property
     def maybe_zero(self):
+        assert not self._sub_clause.maybe_zero, "repeated zero matches infinitely"
         return self._sub_clause.maybe_zero
 
     @property
@@ -248,6 +325,9 @@ class Repeat(Clause[D]):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._sub_clause!r})"
+
+    def __str__(self):
+        return f"{self._sub_clause}+"
 
 
 class Not(Clause[D]):
@@ -282,6 +362,9 @@ class Not(Clause[D]):
     def __repr__(self):
         return f"{self.__class__.__name__}({self._sub_clause!r})"
 
+    def __str__(self):
+        return f"!{self._sub_clause}"
+
 
 # Grammar Definitions
 # TODO: Add Actions/Rules/Transforms
@@ -297,18 +380,16 @@ class Reference(Clause[D]):
     def __init__(self, target: str):
         self.target = target
         self._sub_clause = None
-        self._maybe_zero: Optional[bool] = None
+        # TODO: Correct?
+        self._maybe_zero: Optional[bool] = False
 
     @property
     def maybe_zero(self):
         if self._maybe_zero is None:
             if self._sub_clause is None:
                 self._virtual_clause_()
-            self._maybe_zero = any(
-                node.maybe_zero for node in postorder_dfs(
-                    *self._sub_clause.sub_clauses, _seen={self}
-                ) if node != self
-            )
+            else:
+                self._maybe_zero = self._sub_clause.maybe_zero
         return self._maybe_zero
 
     @property
@@ -321,16 +402,15 @@ class Reference(Clause[D]):
         try:
             sub_match = memo[MemoKey(at, self._sub_clause)]
         except KeyError:
-            return None
+            raise
         else:
             return Match(sub_match.length, (sub_match,))
 
-    def bind(self, clauses: 'Dict[str, Clause[D]]', seen: Optional[Set[Clause[D]]]):
+    def bind(self, clauses: 'Dict[str, Clause[D]]'):
         """Bind this clause into the context of ``clauses`` inplace"""
-        assert self._sub_clause is None, "Cannot rebind reference"
-        seen.add(self)
-        self._sub_clause = clauses[self.target]
-        self._sub_clause.bind(clauses, seen)
+        if self._sub_clause is None:
+            self._sub_clause = clauses[self.target]
+            self._sub_clause.bind(clauses)
 
     def _virtual_clause_(self) -> NoReturn:
         raise UnboundReference(self.target)
@@ -342,7 +422,14 @@ class Reference(Clause[D]):
         return hash(self.target)
 
     def __repr__(self):
+        if self._sub_clause is None:
+            return f"{self.__class__.__name__}({self.target!r},)"
         return f"{self.__class__.__name__}({self.target!r})"
+
+    def __str__(self):
+        if self._sub_clause is None:
+            return f"<{self.target}>"
+        return f"{self.target}"
 
 
 class ParseFailure(Exception):
@@ -359,13 +446,19 @@ class Parser(Generic[D]):
         self.clauses = clauses
         self._compiled_parser = None
 
+    def _prepare(self):
+        if self._compiled_parser is None:
+            self._compiled_parser = self._compile(self.top, self.clauses)
+
     def parse(self, source: D):
         if self._compiled_parser is None:
             self._compiled_parser = self._compile(self.top, self.clauses)
         owned_clauses, triggers, priorities = self._compiled_parser
         terminals: List[Tuple[int, Clause[D]], ...] = [
             (-i, clause) for i, clause in enumerate(priorities) if
-            isinstance(clause, Terminal) and not clause.maybe_zero
+            isinstance(clause, Terminal)
+            and not clause.maybe_zero
+            and not type(clause) is Anything
         ]
         heapq.heapify(terminals)
         memo = MemoTable(source)
@@ -394,7 +487,7 @@ class Parser(Generic[D]):
 
     def _bind_references(self, top: str, clauses: Dict[str, Clause[D]]) -> Dict[str, Clause[D]]:
         owned_clauses = copy.deepcopy(clauses)
-        owned_clauses[top].bind(clauses, set())
+        owned_clauses[top].bind(owned_clauses)
         return owned_clauses
 
     @staticmethod
