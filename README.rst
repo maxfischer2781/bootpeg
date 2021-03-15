@@ -10,6 +10,7 @@ By default, it provides EBNF with actions akin to `PEP 617`_.
 .. code-block:: bash
 
     $ python3 -m bootpeg.boot
+    $ python3 -m bootpeg.bootpika
 
 Do I need a bigger boot?
 ------------------------
