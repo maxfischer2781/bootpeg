@@ -1,5 +1,5 @@
 """
-Pika bottom-up parser backend
+Pika bottom-up PEG parser backend
 
 Based on https://arxiv.org/pdf/2005.06444.pdf, 2020 by Luke A. D. Hutchison
 """
@@ -11,8 +11,6 @@ import heapq
 
 #: Parser domain: The input type for parsing, such as str or bytes
 D = TypeVar("D", covariant=True, bound=Sequence)
-#: Parser result: The output type for parsing, such as (str, ...)
-R = TypeVar("R", contravariant=True)
 
 
 # Ascending memoization
@@ -37,25 +35,25 @@ empty_match = Match(0, (), sys.maxsize)
 
 # TODO: Switch to a persistent data structure such as HAMT/PEP603
 class MemoTable(Generic[D]):
-    __slots__ = ('_matches', '_source')
+    __slots__ = ('matches', 'source')
 
     def __init__(self, source):
-        self._source = source
-        self._matches: Dict[MemoKey, Match] = {}
+        self.source = source
+        self.matches: Dict[MemoKey, Match] = {}
 
     def __getitem__(self, item: MemoKey):
         try:
-            return self._matches[item]
+            return self.matches[item]
         except KeyError:
             if isinstance(item.clause, Anything):
-                return item.clause.match(self._source, item.position, self)
+                return item.clause.match(self.source, item.position, self)
             elif isinstance(item.clause, Not):
-                match = item.clause.match(self._source, item.position, self)
+                match = item.clause.match(self.source, item.position, self)
                 if match is not None:
-                    self._matches[item] = match
+                    self.matches[item] = match
                     return match
             elif item.clause.maybe_zero:
-                self._matches[item] = empty_match
+                self.matches[item] = empty_match
                 return empty_match
             raise  # if you see this, the priorities are wrong. Please open a ticket!
 
@@ -64,40 +62,63 @@ class MemoTable(Generic[D]):
         Insert new match for item and return whether an update occurred
         """
         if match is not None:
-            prev_match = self._matches.get(item)
+            prev_match = self.matches.get(item)
             if prev_match is None or match.overrules(prev_match):
-                self._matches[item] = match
+                self.matches[item] = match
                 return True
         return False
 
 
 # Base Grammar elements
 class Clause(Generic[D]):
+    """
+    Description for matching a specific grammar part
+    """
     __slots__ = ()
-    # whether this clause can match zero-length source
+    #: whether this clause can match zero-length source
     maybe_zero: bool
-    # concrete clauses that make up this clause
+    #: concrete clauses that make up this clause
     sub_clauses: 'Tuple[Clause[D], ...]'
 
     @property
     def triggers(self) -> 'Tuple[Clause[D], ...]':
+        """Clauses whose match implies that this clause can match"""
         return self.sub_clauses
 
     def match(self, source: D, at: int, memo: MemoTable) -> Optional[Match]:
-        raise NotImplementedError(f"Method bind for {self.__class__.__name__}")
+        """
+        Attempt to match ``source`` ``at`` a specific position
 
-    def bind(self, clauses: 'Dict[str, Clause[D]]'):
-        """Bind this clause into the context of ``clauses`` inplace"""
-        for clause in self.sub_clauses:
-            clause.bind(clauses)
+        :param source: entire match domain
+        :param at: index at which to match ``source``
+        :param memo: Previously memoized matches in the ``source``
+        :return: A ``Match`` on success or :py:data:`None` otherwise
+        """
+        raise NotImplementedError(f"Method 'match' for {self.__class__.__name__}")
+
+    def bind(self, clauses: 'Dict[str, Clause[D]]', canonicals: 'Dict[Clause[D], Clause[D]]'):
+        """Inplace bind and deduplicate in the context of named ``clauses``"""
+        if self not in canonicals:
+            canonicals[self] = self
+            sub_clauses = tuple(
+                clause.bind(clauses, canonicals)
+                for clause in self.sub_clauses
+            )
+            self.sub_clauses = sub_clauses
+        return canonicals[self]
 
 
 class Terminal(Clause[D]):
+    """
+    Any clause that does not depend on other clauses
+    """
     __slots__ = ()
     sub_clauses = ()
 
-    def bind(self, clauses):
-        pass
+    def bind(self, clauses, canonicals):
+        if self not in canonicals:
+            canonicals[self] = self
+        return canonicals[self]
 
 
 def postorder_dfs(*bases: Clause[D], _seen: Optional[Set[Clause[D]]] = None) -> Iterable[Clause[D]]:
@@ -110,19 +131,26 @@ def postorder_dfs(*bases: Clause[D], _seen: Optional[Set[Clause[D]]] = None) -> 
     """
     _seen = _seen if _seen is not None else set()
     for base in bases:
+        if base in _seen:
+            continue
         _seen.add(base)
         for sub_clause in base.sub_clauses:
             if sub_clause not in _seen:
-                _seen.add(sub_clause)
                 yield from postorder_dfs(sub_clause, _seen=_seen)
-                yield sub_clause
         yield base
+
+
+def nested_str(clause: Clause):
+    """Helper to format sub-clauses with grouping parentheses as required"""
+    if isinstance(clause, (Reference, Terminal, Not, Repeat)):
+        return str(clause)
+    return f"({clause})"
 
 
 # Specific Grammar elements
 class Nothing(Terminal[D]):
     """
-    The empty literal, matches at any point consuming nothing
+    The empty terminal "ε", matches at any point consuming nothing
     """
     maybe_zero = True
 
@@ -144,7 +172,7 @@ class Nothing(Terminal[D]):
 
 class Anything(Terminal[D]):
     """
-    Any literal, matches at any point with sufficient remainder
+    The Any terminal ".", matches at any point with sufficient remainder
     """
     __slots__ = ('length',)
     maybe_zero = False
@@ -171,6 +199,9 @@ class Anything(Terminal[D]):
 
 
 class Literal(Terminal[D]):
+    """
+    A terminal matching a fixed literal
+    """
     __slots__ = ('value',)
     maybe_zero = False
 
@@ -197,6 +228,9 @@ class Literal(Terminal[D]):
 
 
 class Sequence(Clause[D]):
+    """
+    A sequence of clauses, matching if all ``sub_clauses`` match in order
+    """
     __slots__ = ('sub_clauses', '_maybe_zero')
 
     @property
@@ -210,7 +244,7 @@ class Sequence(Clause[D]):
     @property
     def triggers(self) -> 'Tuple[Clause[D], ...]':
         first_required = next(
-            (n for n, scl in enumerate(self.sub_clauses, start=1) if scl.maybe_zero),
+            (n for n, scl in enumerate(self.sub_clauses, start=1) if not scl.maybe_zero),
             len(self.sub_clauses)
         )
         return self.sub_clauses[:first_required]
@@ -240,13 +274,13 @@ class Sequence(Clause[D]):
         return f"{self.__class__.__name__}({', '.join(map(repr, self.sub_clauses))})"
 
     def __str__(self):
-        return ' '.join(
-            str(cl) if isinstance(cl, Terminal) else f"({cl})"
-            for cl in self.sub_clauses
-        )
+        return ' '.join(map(nested_str, self.sub_clauses))
 
 
 class Choice(Clause[D]):
+    """
+    A choice of clauses, matching with the first matching clause of ``sub_clauses``
+    """
     __slots__ = ('sub_clauses', '_maybe_zero')
 
     @property
@@ -281,13 +315,13 @@ class Choice(Clause[D]):
         return f"{self.__class__.__name__}({', '.join(map(repr, self.sub_clauses))})"
 
     def __str__(self):
-        return ' / '.join(
-            str(cl) if isinstance(cl, Terminal) else f"({cl})"
-            for cl in self.sub_clauses
-        )
+        return ' / '.join(map(nested_str, self.sub_clauses))
 
 
 class Repeat(Clause[D]):
+    """
+    A repetition of a clause, matching if the sub_clause matches at least once
+    """
     __slots__ = ('_sub_clause',)
 
     @property
@@ -298,6 +332,10 @@ class Repeat(Clause[D]):
     @property
     def sub_clauses(self) -> Tuple[Clause[D]]:
         return self._sub_clause,
+
+    @sub_clauses.setter
+    def sub_clauses(self, values: Tuple[Clause[D]]):
+        self._sub_clause, = values
 
     def __init__(self, sub_clause: Clause[D]):
         self._sub_clause = sub_clause
@@ -327,16 +365,23 @@ class Repeat(Clause[D]):
         return f"{self.__class__.__name__}({self._sub_clause!r})"
 
     def __str__(self):
-        return f"{self._sub_clause}+"
+        return f"{nested_str(self._sub_clause)}+"
 
 
 class Not(Clause[D]):
+    """
+    The inversion of a clause, matching if the sub_clause does not match
+    """
     __slots__ = ('_sub_clause',)
     maybe_zero = True
 
     @property
     def sub_clauses(self) -> Tuple[Clause[D]]:
         return self._sub_clause,
+
+    @sub_clauses.setter
+    def sub_clauses(self, value: Tuple[Clause[D]]):
+        self._sub_clause, = value
 
     @property
     def triggers(self):
@@ -363,7 +408,7 @@ class Not(Clause[D]):
         return f"{self.__class__.__name__}({self._sub_clause!r})"
 
     def __str__(self):
-        return f"!{self._sub_clause}"
+        return f"!{nested_str(self._sub_clause)}"
 
 
 # Grammar Definitions
@@ -375,6 +420,9 @@ class UnboundReference(LookupError):
 
 
 class Reference(Clause[D]):
+    """
+    Placeholder for another named clause, matching if the target matches
+    """
     __slots__ = ('target', '_sub_clause', '_maybe_zero')
 
     def __init__(self, target: str):
@@ -406,11 +454,13 @@ class Reference(Clause[D]):
         else:
             return Match(sub_match.length, (sub_match,))
 
-    def bind(self, clauses: 'Dict[str, Clause[D]]'):
+    def bind(self, clauses: 'Dict[str, Clause[D]]', canonicals: 'Dict[Clause[D], Clause[D]]'):
         """Bind this clause into the context of ``clauses`` inplace"""
-        if self._sub_clause is None:
-            self._sub_clause = clauses[self.target]
-            self._sub_clause.bind(clauses)
+        if self not in canonicals:
+            canonicals[self] = self
+            assert self._sub_clause is None
+            self._sub_clause = clauses[self.target].bind(clauses, canonicals)
+        return canonicals[self]
 
     def _virtual_clause_(self) -> NoReturn:
         raise UnboundReference(self.target)
@@ -433,6 +483,9 @@ class Reference(Clause[D]):
 
 
 class ParseFailure(Exception):
+    """
+    Parsing failed for ``source`` up to the current ``memo`` progress
+    """
     def __init__(self, memo: MemoTable):
         self.memo = memo
         super().__init__("Failed to parse source")
@@ -458,7 +511,6 @@ class Parser(Generic[D]):
             (-i, clause) for i, clause in enumerate(priorities) if
             isinstance(clause, Terminal)
             and not clause.maybe_zero
-            and not type(clause) is Anything
         ]
         heapq.heapify(terminals)
         memo = MemoTable(source)
@@ -473,7 +525,7 @@ class Parser(Generic[D]):
                             outstanding, (priorities[parent_clause], parent_clause)
                         )
         try:
-            return memo[MemoKey(0, owned_clauses[self.top])]
+            return memo[MemoKey(0, owned_clauses[self.top])], memo
         except KeyError:
             raise ParseFailure(memo) from None
 
@@ -487,7 +539,7 @@ class Parser(Generic[D]):
 
     def _bind_references(self, top: str, clauses: Dict[str, Clause[D]]) -> Dict[str, Clause[D]]:
         owned_clauses = copy.deepcopy(clauses)
-        owned_clauses[top].bind(owned_clauses)
+        owned_clauses[top].bind(owned_clauses, {})
         return owned_clauses
 
     @staticmethod
