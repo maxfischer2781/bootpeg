@@ -1,10 +1,10 @@
 """
 Pika bottom-up Peg parser extension to transform parsed source
 """
-from typing import TypeVar, NamedTuple, Dict
+from typing import TypeVar, Any, Dict, Tuple
 import re
 
-from .pika_peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str, Terminal
+from .pika_peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str
 from .utility import mono
 
 
@@ -37,6 +37,9 @@ class Debug(Clause[D]):
     def __hash__(self):
         return hash(self.sub_clauses)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
+
     def __str__(self):
         return f":{self.name}:"
 
@@ -55,13 +58,16 @@ class Capture(Clause[D]):
 
     def match(self, source: D, at: int, memo: MemoTable):
         parent_match = memo[MemoKey(at, self.sub_clauses[0])]
-        return Match(parent_match.length, (parent_match,))
+        return Match(parent_match.length, (parent_match,), at, self)
 
     def __eq__(self, other):
         return isinstance(other, Capture) and self.name == other.name and self.sub_clauses == other.sub_clauses
 
     def __hash__(self):
         return hash((self.name, self.sub_clauses))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
 
     def __str__(self):
         return f"{self.name}={nested_str(self.sub_clauses[0])}"
@@ -80,13 +86,16 @@ class Rule(Clause[D]):
 
     def match(self, source: D, at: int, memo: MemoTable):
         parent_match = memo[MemoKey(at, self.sub_clauses[0])]
-        return Match(parent_match.length, (parent_match,))
+        return Match(parent_match.length, (parent_match,), at, self)
 
     def __eq__(self, other):
         return isinstance(other, Rule) and self.action == other.action and self.sub_clauses == other.sub_clauses
 
     def __hash__(self):
         return hash((self.action, self.sub_clauses))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
 
     def __str__(self):
         return f"{nested_str(self.sub_clauses[0])} {self.action}"
@@ -95,38 +104,63 @@ class Rule(Clause[D]):
 class Action:
     __slots__ = ('literal', 'code', '_callable')
     # TODO: Define these via a PEG parser
-    positional = re.compile(r"\.(\d+)")
     unpack = re.compile(r"\.\*")
+    packed = re.compile(r"\.\(\*\)")
     named = re.compile(r"(^|[ (])\.([a-zA-Z]+)")
+    mangle = "__pika_act_"
 
     def __init__(self, literal: str, namespace: dict):
         self.literal = literal
         self.code = self._encode(literal)
         self._callable = eval(self.code, namespace)
 
-    def __call__(self, match: Match):
+    def __call__(self, *args, **kwargs):
         try:
-            return self._callable(match)
+            return self._callable(*args, **kwargs)
         except Exception as err:
-            raise type(err)(f"{err} <{self.code}> {match}")
+            raise type(err)(f"{err} <{self.code}>")
 
     @classmethod
     def _encode(cls, literal):
+        names = [f"{cls.mangle}{match.group(2)}" for match in cls.named.finditer(literal)]
         body = cls.named.sub(
-            r"\1__match['\2']",
-            cls.positional.sub(
-                r" __match[\1]",
-                cls.unpack.sub(r" *__match[:]", literal)
+            rf"\1 {cls.mangle}\2",
+            cls.unpack.sub(
+                rf" *{cls.mangle}all if len({cls.mangle}all) > 1 else {cls.mangle}all[0]",
+                cls.packed.sub(rf" {cls.mangle}all", literal)
             )
         )
-        return f'lambda __match: Match({body})'
+        return f'lambda {cls.mangle}all, {", ".join(names)}: {body}'
 
     def __str__(self):
-        return self.literal
+        return f"{{{self.literal}}}"
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.literal!r})"
 
 
 def transform(head: Match, memo: MemoTable):
-    pass
+    return postorder_transform(head, memo.source)
+
+
+# TODO: Use trampoline/coroutines for infinite depth
+def postorder_transform(match: Match, source: D) -> Tuple[Any, Dict[str, Any]]:
+    matches, captures = (), {}
+    for sub_match in match.sub_matches:
+        sub_matches, sub_captures = postorder_transform(sub_match, source)
+        matches += sub_matches
+        captures.update(sub_captures)
+    position, clause = match.position, match.clause
+    if isinstance(clause, Capture):
+        assert len(matches) <= 1, "Captured rule must provide no more than one value"
+        captures[Action.mangle + clause.name] = matches[0] if matches else source[position:position + match.length]
+        return (), captures
+    elif isinstance(clause, Rule):
+        matches = matches if matches else source[position:position + match.length]
+        try:
+            result = clause.action(matches, **captures)
+        except Exception:
+            print(source[position:position + match.length])
+            raise
+        return (result,), {}
+    return matches, captures

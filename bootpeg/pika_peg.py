@@ -22,15 +22,16 @@ class MemoKey(NamedTuple):
 class Match(NamedTuple):
     length: int
     sub_matches: 'Tuple[Match, ...]'
+    position: int
+    clause: 'Clause'
     priority: int = 0
 
     def overrules(self, other: 'Match') -> bool:
         """Whether ``self`` is better than an ``other`` match *for the same clause*"""
+        assert self.position == other.position and self.clause == other.clause, (
+            f"{self.position}=={other.position} and {self.clause}=={other.clause}"
+        )
         return self.priority < other.priority or self.length > other.length
-
-
-# sys.maxsize is the maximum container length => worst priority
-empty_match = Match(0, (), sys.maxsize)
 
 
 # TODO: Switch to a persistent data structure such as HAMT/PEP603
@@ -53,8 +54,8 @@ class MemoTable(Generic[D]):
                     self.matches[item] = match
                     return match
             elif item.clause.maybe_zero:
-                self.matches[item] = empty_match
-                return empty_match
+                match = self.matches[item] = Match(0, (), item.position, item.clause)
+                return match
             raise  # if you see this, the priorities are wrong. Please open a ticket!
 
     def insert(self, item: MemoKey, match: Optional[Match]) -> bool:
@@ -155,7 +156,7 @@ class Nothing(Terminal[D]):
     maybe_zero = True
 
     def match(self, source: D, at: int, memo: MemoTable):
-        return empty_match
+        return Match(0, (), at, self)
 
     def __eq__(self, other):
         return isinstance(other, Nothing)
@@ -182,7 +183,7 @@ class Anything(Terminal[D]):
 
     def match(self, source: D, at: int, memo: MemoTable):
         if at + self.length < len(source):
-            return Match(self.length, ())
+            return Match(self.length, (), at, self)
         return None
 
     def __eq__(self, other):
@@ -211,7 +212,7 @@ class Literal(Terminal[D]):
 
     def match(self, source: D, at: int, memo: MemoTable):
         if source[at:at+len(self.value)] == self.value:
-            return Match(len(self.value), ())
+            return Match(len(self.value), (), at, self)
         return None
 
     def __eq__(self, other):
@@ -260,7 +261,7 @@ class Sequence(Clause[D]):
                 sub_match = memo[MemoKey(offset, sub_clause)]
                 matches += (sub_match,)
                 offset += sub_match.length
-            return Match(offset - at, matches)
+            return Match(offset - at, matches, at, self)
         except KeyError:
             return None
 
@@ -302,7 +303,7 @@ class Choice(Clause[D]):
             except KeyError:
                 pass
             else:
-                return Match(sub_match.length, (sub_match,), index)
+                return Match(sub_match.length, (sub_match,), at, self, index)
         return None
 
     def __eq__(self, other):
@@ -346,14 +347,14 @@ class Repeat(Clause[D]):
         except KeyError:
             return None
         if sub_match.length == 0:
-            return Match(sub_match.length, (sub_match,))
+            return Match(sub_match.length, (sub_match,), at, self)
         # check if there was a previous match by us at the next position
         try:
             prev_match = memo[MemoKey(at + sub_match.length, self)]
         except KeyError:
-            return Match(sub_match.length, (sub_match,))
+            return Match(sub_match.length, (sub_match,), at, self)
         else:
-            return Match(sub_match.length + prev_match.length, (sub_match, prev_match))
+            return Match(sub_match.length + prev_match.length, (sub_match, prev_match), at, self)
 
     def __eq__(self, other):
         return isinstance(other, Not) and self._sub_clause == other._sub_clause
@@ -394,7 +395,7 @@ class Not(Clause[D]):
         try:
             _ = memo[MemoKey(at, self._sub_clause)]
         except KeyError:
-            return empty_match
+            return Match(0, (), at, self)
         else:
             return None
 
@@ -452,7 +453,7 @@ class Reference(Clause[D]):
         except KeyError:
             raise
         else:
-            return Match(sub_match.length, (sub_match,))
+            return Match(sub_match.length, (sub_match,), at, self)
 
     def bind(self, clauses: 'Dict[str, Clause[D]]', canonicals: 'Dict[Clause[D], Clause[D]]'):
         """Bind this clause into the context of ``clauses`` inplace"""
