@@ -2,9 +2,9 @@ import string
 import time
 from functools import partial
 
-from .pika_peg import Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Parser, postorder_dfs
-from .pika_act import Debug, Capture, Rule, transform, Action
-from .utility import ascii_escapes
+from .peg import Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Parser, postorder_dfs
+from .act import Debug, Capture, Rule, transform, Action
+from ..utility import ascii_escapes
 
 
 def range_parse(source: str, parser: Parser):

@@ -4,8 +4,8 @@ Pika bottom-up Peg parser extension to transform parsed source
 from typing import TypeVar, Any, Dict, Tuple
 import re
 
-from .pika_peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str
-from .utility import mono
+from .peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str
+from ..utility import mono
 
 
 #: Parser result: The output type for parsing, such as (str, ...)

@@ -4,7 +4,6 @@ Pika bottom-up PEG parser backend
 Based on https://arxiv.org/pdf/2005.06444.pdf, 2020 by Luke A. D. Hutchison
 """
 from typing import NamedTuple, Generic, TypeVar, Dict, Tuple, Sequence, Optional, NoReturn, Iterable, Set, List
-import sys
 import copy
 import heapq
 
