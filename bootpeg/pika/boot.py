@@ -1,6 +1,6 @@
 import string
 import time
-from functools import partial
+import pathlib
 
 from .peg import Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Parser, postorder_dfs
 from .act import Debug, Capture, Rule, transform, Action
@@ -16,15 +16,16 @@ def range_parse(source: str, parser: Parser):
     print(source.translate(ascii_escapes))
     print('^', '-' * (match.length - 2), '^', sep='')
     print(f"{until - start:.3f}s")
-    for clause in transform(match, memo)[0]:
-        print(clause)
+    for define in transform(match, memo, namespace)[0]:
+        assert len(define) == 1, "Only implemented for one-define-per-match"
+        name, clause = next(iter(define.items()))
+        print(f"{name:<10} <-", clause)
 
 
 namespace = {
     expression.__name__: expression for expression in
-    (Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Capture, Rule)
+    (Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Capture, Rule, Action)
 }
-namespace['ParseAction'] = ParseAction = partial(Action, namespace=namespace)
 
 
 Letters = Choice(*(Literal(ch) for ch in string.ascii_letters))
@@ -40,49 +41,57 @@ parser = Parser(
                 for quote in (Literal("'"), Literal('"'))
             )
         ),
-        ParseAction("Literal(.(*))"),
+        Action("Literal(.*)"),
+    ),
+    anything=Rule(
+        Literal("."),
+        Action("Literal(.*)"),
     ),
     identifier=Repeat(Choice(Letters, Literal("_"))),
     choice=Rule(
         Sequence(Capture("try", Reference("expr")), spaces, Literal("|"), spaces, Capture("else", Reference("expr"))),
-        ParseAction("Choice(.try, .else)"),
+        Action("Choice(.try, .else)"),
     ),
     group=Rule(
         Sequence(Literal("("), spaces, Capture("expr", Reference("expr")), spaces, Literal(")")),
-        ParseAction(".expr"),
+        Action(".expr"),
     ),
     sequence=Rule(
         Sequence(Capture("head", Reference("expr")), spaces, Capture("tail", Reference("expr"))),
-        ParseAction("Sequence(.head, .tail)"),
+        Action("Sequence(.head, .tail)"),
     ),
     repeat=Rule(
         Sequence(Capture("base", Reference("expr")), spaces, Literal('+')),
-        ParseAction("Repeat(.base)"),
+        Action("Repeat(.base)"),
     ),
     reference=Rule(
         Reference("identifier"),
-        ParseAction("Reference(.(*))"),
+        Action("Reference(.*)"),
     ),
     capture=Rule(
         Sequence(Capture("name", Reference("identifier")), spaces, Literal("="), spaces, Capture("rule", Reference("expr"))),
-        ParseAction("Capture(.name, .rule)"),
+        Action("Capture(.name, .rule)"),
+    ),
+    reject=Rule(
+        Sequence(Literal("!"), Capture("expr", Reference("expr"))),
+        Action("Not(.expr)")
     ),
     expr=Rule(
         Capture(
             "expr",
             Choice(
-                Reference("choice"), Reference("sequence"), Reference("repeat"), Reference("group"), Reference("capture"), Reference("reference"), Reference("literal")
+                Reference("choice"), Reference("sequence"), Reference("repeat"), Reference("group"), Reference("capture"), Reference("reference"), Reference("literal"), Reference("reject"), Reference("anything")
             )
         ),
-        ParseAction(".expr"),
+        Action(".expr"),
     ),
     action=Rule(
-        Sequence(Literal("{"), spaces, Capture("body", Repeat(Sequence(Not(Literal("}")), Anything()))), spaces, Literal("}")),
-        ParseAction("ParseAction(.body)"),
+        Sequence(Literal("{"), Capture("body", Repeat(Sequence(Not(Literal("}")), Anything()))), Literal("}")),
+        Action("Action(.body)"),
     ),
     rule=Rule(
         Sequence(Literal("|"), spaces, Capture("expr", Reference("expr")), spaces, Capture("action", Reference("action"))),
-        ParseAction("Rule(.expr, .action)"),
+        Action("Rule(.expr, .action)"),
     ),
     rules=Rule(
         Capture(
@@ -90,19 +99,19 @@ parser = Parser(
             Choice(
                 Rule(
                     Sequence(Literal(" "), spaces, Capture("try", Reference("rule")), spaces, end_line, Capture("else", Reference("rules"))),
-                    ParseAction("Choice(.try, .else)"),
+                    Action("Choice(.try, .else)"),
                 ),
                 Rule(
                     Sequence(Literal(" "), spaces, Capture("rule", Reference("rule")), spaces, end_line),
-                    ParseAction(".rule"),
+                    Action(".rule"),
                 ),
             )
         ),
-        ParseAction(".rule"),
+        Action(".rule"),
     ),
     define=Rule(
         Sequence(Capture("name", Reference("identifier")), Literal(':'), spaces, end_line, Capture("rules", Reference("rules"))),
-        ParseAction("{ .name : .rules }"),
+        Action("{ .name : .rules }"),
     ),
     comment=Sequence(Literal("#"), Repeat(Sequence(Not(end_line), Anything())), end_line),
     blank=Sequence(spaces, end_line),
@@ -112,15 +121,20 @@ print('--------------------------------------------')
 range_parse('''\
 #example
 hello:
-    | a "+" b | a {.(*)}
-    | c "+" d {.(*)}
+    | a "+" b | a {.*}
+    | c "+" d {.*}
 
 world:
-    | (a=a)+ {.(*)}
+    | (a=a)+ {.*}
 ''',
 parser
 )
 print('--------------------------------------------')
+with open(pathlib.Path(__file__).parent / 'boot.peg') as boot_peg:
+    range_parse(
+        boot_peg.read(),
+        parser,
+    )
 parser._prepare()
 print("Rules:", len(list(postorder_dfs(parser._compiled_parser[0][parser.top]))))
 for name, clause in parser._compiled_parser[0].items():

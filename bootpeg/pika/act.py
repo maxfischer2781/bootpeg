@@ -102,23 +102,22 @@ class Rule(Clause[D]):
 
 
 class Action:
-    __slots__ = ('literal', 'code', '_callable')
+    __slots__ = ('literal', '_py_source', '_py_code')
     # TODO: Define these via a PEG parser
     unpack = re.compile(r"\.\*")
-    packed = re.compile(r"\.\(\*\)")
     named = re.compile(r"(^|[ (])\.([a-zA-Z]+)")
     mangle = "__pika_act_"
 
-    def __init__(self, literal: str, namespace: dict):
+    def __init__(self, literal: str):
         self.literal = literal
-        self.code = self._encode(literal)
-        self._callable = eval(self.code, namespace)
+        self._py_source = self._encode(literal)
+        self._py_code = compile(self._py_source, self._py_source, 'eval')
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, __namespace, *args, **kwargs):
         try:
-            return self._callable(*args, **kwargs)
+            return eval(self._py_code, __namespace)(*args, **kwargs)
         except Exception as err:
-            raise type(err)(f"{err} <{self.code}>")
+            raise type(err)(f"{err} <{self._py_source}>")
 
     @classmethod
     def _encode(cls, literal):
@@ -126,9 +125,7 @@ class Action:
         body = cls.named.sub(
             rf"\1 {cls.mangle}\2",
             cls.unpack.sub(
-                rf" *{cls.mangle}all if len({cls.mangle}all) > 1 else {cls.mangle}all[0]",
-                cls.packed.sub(rf" {cls.mangle}all", literal)
-            )
+                rf" {cls.mangle}all", literal)
         )
         return f'lambda {cls.mangle}all, {", ".join(names)}: {body}'
 
@@ -139,15 +136,15 @@ class Action:
         return f"{self.__class__.__name__}({self.literal!r})"
 
 
-def transform(head: Match, memo: MemoTable):
-    return postorder_transform(head, memo.source)
+def transform(head: Match, memo: MemoTable, namespace: Dict[str, Any]):
+    return postorder_transform(head, memo.source, namespace)
 
 
 # TODO: Use trampoline/coroutines for infinite depth
-def postorder_transform(match: Match, source: D) -> Tuple[Any, Dict[str, Any]]:
+def postorder_transform(match: Match, source: D, namespace: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
     matches, captures = (), {}
     for sub_match in match.sub_matches:
-        sub_matches, sub_captures = postorder_transform(sub_match, source)
+        sub_matches, sub_captures = postorder_transform(sub_match, source, namespace)
         matches += sub_matches
         captures.update(sub_captures)
     position, clause = match.position, match.clause
@@ -158,7 +155,7 @@ def postorder_transform(match: Match, source: D) -> Tuple[Any, Dict[str, Any]]:
     elif isinstance(clause, Rule):
         matches = matches if matches else source[position:position + match.length]
         try:
-            result = clause.action(matches, **captures)
+            result = clause.action(namespace, matches, **captures)
         except Exception:
             print(source[position:position + match.length])
             raise
