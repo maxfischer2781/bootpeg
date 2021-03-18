@@ -7,36 +7,40 @@ alpha:
 symbol:
     | "!" | "#" | "$" | "%" | "&" | "(" | ")" | "*" | "+" | "," | "-" | "." | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\" | "]" | "^" | "_" | "`" | "{" | "|" | "}" | "~" { () }
 spaces:
-    | " "+ { () }
-    | " " { () }
+    | " "+ | "" { () }
+nothing:
+    | "''" | '""' { Nothing() }
+anything:
+    | "." { Anything() }
 end_line:
-    | "\n" {()}
+    | "
+" {()}
 identifier:
     | ( alpha | "_" )+ { () }
 
 literal:
-    | '"' ( alpha | digit | symbol | " " | "'" )+ '"' { Literal(.*) }
-    | "'" ( alpha | digit | symbol | " " | "'" )+ "'" { Literal(.*) }
+    | '"' ( alpha | digit | symbol | " " | "'" )+ '"' { Literal(.body[1:-1]) }
+    | "'" ( alpha | digit | symbol | " " | "'" )+ "'" { Literal(.body[1:-1]) }
 
 group:
-    | "(" sub=expr ")" { .sub }
+    | "(" spaces sub=expr spaces ")" { .sub }
 choice:
-    | first=expr spaces "|" spaces else=expr { Choice(.first, .else) }
-chain:
-    | first=expr spaces then=expr { Sequence(.first, .then) }
-option:
-    | "[" spaces base=expr spaces "]" { Choice(.base, Nothing()) }
+    | try=expr spaces "|" spaces else=expr { either(.try, .else) }
+sequence:
+    | head=expr spaces tail=expr { chain(.head, .tail) }
+# option:
+#     | "[" spaces base=expr spaces "]" { either(.base, Nothing()) }
 repeat:
-    | expr=expr spaces "*" { Choice(Repeat(.expr), Nothing()) }
-    | expr spaces "+" { Repeat(.expr) }
+    | expr=expr spaces "+" { Repeat(.expr) }
+#    | expr=expr spaces "*" { either(Repeat(.expr), Nothing()) }
 capture:
-    | name=identifier spaces "=" spaces expr=expr { Capture(.name, .expr) }
+    | name=identifier spaces "=" spaces expr=(reference | group) { Capture(.name, .expr) }
 reference:
     | name=identifier { Reference(.name) }
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | group | chain | option | repeat | capture | reference | literal | reject) { .expr }
+    | expr=(choice | group | sequence | repeat | capture | reference | literal | reject | anything | nothing) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces action=action { Rule(.expr, .action) }
@@ -46,12 +50,12 @@ action:
 
 comment:
     | "#" (!end_line .) end_line { () }
-empty:
+blank:
     | spaces end_line { () }
 define:
     | name=identifier ":" spaces end_line rules=rules { (.name, .rules) }
 rules:
-    | " " spaces first=rule spaces end_line else=rules { Choice(.first, .else) }
+    | " " spaces first=rule spaces end_line else=rules { either(.first, .else) }
     | " " spaces rule=rule spaces end_line { .rule }
 top:
-    | ( comment | define | empty )+ { .* }
+    | ( define | comment | blank )+ { .* }
