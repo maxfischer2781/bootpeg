@@ -9,6 +9,8 @@ symbol:
 spaces:
     | " "+ { () }
     | " " { () }
+end_line:
+    | "\n" {()}
 identifier:
     | ( alpha | "_" )+ { () }
 
@@ -34,7 +36,7 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | group | chain | option | repeat | require | capture | reference | literal | reject) { .expr }
+    | expr=(choice | group | chain | option | repeat | capture | reference | literal | reject) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces action=action { Rule(.expr, .action) }
@@ -43,13 +45,13 @@ action:
     | "{" body=(!"}" .+) "}" { Action(.body) }
 
 comment:
-    | r"#.*?" ENDLINE { () }
+    | "#" (!end_line .) end_line { () }
 empty:
-    | spaces ENDLINE { () }
+    | spaces end_line { () }
 define:
-    | name=identifier ":" spaces ENDLINE rules=rules { (.name, .rules) }
+    | name=identifier ":" spaces end_line rules=rules { (.name, .rules) }
 rules:
-    | " " spaces first=rule spaces ENDLINE else=rules { Choice(.first, .else) }
-    | " " spaces rule=rule spaces ENDLINE { .rule }
+    | " " spaces first=rule spaces end_line else=rules { Choice(.first, .else) }
+    | " " spaces rule=rule spaces end_line { .rule }
 top:
     | ( comment | define | empty )+ { .* }

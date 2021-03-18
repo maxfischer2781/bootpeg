@@ -16,10 +16,14 @@ def range_parse(source: str, parser: Parser):
     print(source.translate(ascii_escapes))
     print('^', '-' * (match.length - 2), '^', sep='')
     print(f"{until - start:.3f}s")
-    for define in transform(match, memo, namespace)[0]:
-        assert len(define) == 1, "Only implemented for one-define-per-match"
-        name, clause = next(iter(define.items()))
+    for name, clause in transform(match, memo, namespace)[0]:
         print(f"{name:<10} <-", clause)
+    return Parser(
+        "top",
+        **{
+            name: clause for name, clause in transform(match, memo, namespace)[0]
+        }
+    )
 
 
 namespace = {
@@ -111,7 +115,7 @@ parser = Parser(
     ),
     define=Rule(
         Sequence(Capture("name", Reference("identifier")), Literal(':'), spaces, end_line, Capture("rules", Reference("rules"))),
-        Action("{ .name : .rules }"),
+        Action("(.name, .rules)"),
     ),
     comment=Sequence(Literal("#"), Repeat(Sequence(Not(end_line), Anything())), end_line),
     blank=Sequence(spaces, end_line),
@@ -130,14 +134,15 @@ world:
 parser
 )
 print('--------------------------------------------')
-with open(pathlib.Path(__file__).parent / 'boot.peg') as boot_peg:
-    range_parse(
-        boot_peg.read(),
-        parser,
-    )
-parser._prepare()
-print("Rules:", len(list(postorder_dfs(parser._compiled_parser[0][parser.top]))))
-for name, clause in parser._compiled_parser[0].items():
-    print(f"{name:<10} <-", clause)
-    if isinstance(clause, Debug):
-        print('Debugs:', clause.sub_clauses[0])
+for _ in range(3):
+    with open(pathlib.Path(__file__).parent / 'boot.peg') as boot_peg:
+        parser = range_parse(
+            boot_peg.read(),
+            parser,
+        )
+    parser._prepare()
+    print("Rules:", len(list(postorder_dfs(parser._compiled_parser[0][parser.top]))))
+    for name, clause in parser._compiled_parser[0].items():
+        print(f"{name:<10} <-", clause)
+        if isinstance(clause, Debug):
+            print('Debugs:', clause.sub_clauses[0])
