@@ -34,7 +34,6 @@ class Match(NamedTuple):
         return self.priority < other.priority or self.length > other.length
 
 
-# TODO: Switch to a persistent data structure such as HAMT/PEP603
 class MemoTable(Generic[D]):
     __slots__ = ('matches', 'source')
 
@@ -522,6 +521,7 @@ class Parser(Generic[D]):
             self._compiled_parser = self._compile(self.top, self.clauses)
 
     def parse(self, source: D):
+        """Parse a ``source`` sequence"""
         if self._compiled_parser is None:
             self._compiled_parser = self._compile(self.top, self.clauses)
         owned_clauses, triggers, priorities = self._compiled_parser

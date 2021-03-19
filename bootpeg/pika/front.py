@@ -3,6 +3,7 @@ from .act import Debug, Capture, Rule, transform, Action, Discard
 
 
 def chain(left, right) -> Sequence:
+    """Chain two clauses efficiently"""
     if isinstance(left, Sequence):
         if isinstance(right, Sequence):
             return Sequence(*left.sub_clauses, *right.sub_clauses)
@@ -13,6 +14,7 @@ def chain(left, right) -> Sequence:
 
 
 def either(left, right) -> Choice:
+    """Choose between two clauses efficiently"""
     if isinstance(left, Choice):
         if isinstance(right, Choice):
             return Choice(*left.sub_clauses, *right.sub_clauses)

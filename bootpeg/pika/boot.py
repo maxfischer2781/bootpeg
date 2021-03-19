@@ -28,6 +28,7 @@ def range_parse(source: str, parser: Parser):
 
 
 def report_matches(memo: MemoTable):
+    """Show matched range(s) by a parsed memo table"""
     longest_matches = {}
     for match in memo.matches.values():
         length, _, position, *_ = match
@@ -46,6 +47,7 @@ def report_matches(memo: MemoTable):
 
 
 def display(parser: Parser):
+    """Display a parser in PEG form"""
     try:
         parser._prepare()
     except Exception:
