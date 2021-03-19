@@ -98,7 +98,15 @@ class Rule(Clause[D]):
         return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
 
     def __str__(self):
-        return f"{nested_str(self.sub_clauses[0])} {self.action}"
+        return f"| {self.sub_clauses[0]} {self.action}"
+
+
+class Discard:
+    def __str__(self):
+        return "∅"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
 
 
 class Action:
@@ -109,8 +117,8 @@ class Action:
     mangle = "__pika_act_"
 
     def __init__(self, literal: str):
-        self.literal = literal
-        self._py_source = self._encode(literal)
+        self.literal = literal.strip()
+        self._py_source = self._encode(self.literal)
         self._py_code = compile(self._py_source, self._py_source, 'eval')
 
     def __call__(self, __namespace, *args, **kwargs):
@@ -136,6 +144,17 @@ class Action:
         return f"{self.__class__.__name__}({self.literal!r})"
 
 
+class TransformFailure(Exception):
+    def __init__(self, clause, matches, captures, exc: Exception):
+        super().__init__(
+            f"failed to transform {clause}: {exc}"
+        )
+        self.clause = clause
+        self.matches = matches
+        self.captures = captures
+        self.exc = exc
+
+
 def transform(head: Match, memo: MemoTable, namespace: Dict[str, Any]):
     return postorder_transform(head, memo.source, namespace)
 
@@ -156,8 +175,7 @@ def postorder_transform(match: Match, source: D, namespace: Dict[str, Any]) -> T
         matches = matches if matches else source[position:position + match.length]
         try:
             result = clause.action(namespace, matches, **captures)
-        except Exception:
-            print(source[position:position + match.length])
-            raise
-        return (result,), {}
+        except Exception as exc:
+            raise TransformFailure(clause, matches, captures, exc)
+        return (result,) if not isinstance(result, Discard) else (), {}
     return matches, captures

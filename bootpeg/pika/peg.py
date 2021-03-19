@@ -133,7 +133,7 @@ def postorder_dfs(*bases: Clause[D], _seen: Optional[Set[Clause[D]]] = None) -> 
         if base in _seen:
             continue
         _seen.add(base)
-        for sub_clause in base.sub_clauses:
+        for sub_clause in reversed(base.sub_clauses):
             if sub_clause not in _seen:
                 yield from postorder_dfs(sub_clause, _seen=_seen)
         yield base
@@ -314,7 +314,7 @@ class Choice(Clause[D]):
         return f"{self.__class__.__name__}({', '.join(map(repr, self.sub_clauses))})"
 
     def __str__(self):
-        return ' / '.join(map(nested_str, self.sub_clauses))
+        return ' | '.join(map(nested_str, self.sub_clauses))
 
 
 class Repeat(Clause[D]):

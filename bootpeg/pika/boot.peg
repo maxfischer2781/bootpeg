@@ -1,38 +1,28 @@
 # minimal EBNF+Actions PEG parser
 # manually maintained, should be in sync with boot.py
-digit:
-    | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" { () }
-alpha:
-    | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" { () }
-symbol:
-    | "!" | "#" | "$" | "%" | "&" | "(" | ")" | "*" | "+" | "," | "-" | "." | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\" | "]" | "^" | "_" | "`" | "{" | "|" | "}" | "~" { () }
 spaces:
-    | " "+ | "" { () }
+    | " "+ | "" { Discard() }
 nothing:
     | "''" | '""' { Nothing() }
 anything:
     | "." { Anything() }
 end_line:
     | "
-" {()}
+" {Discard()}
 identifier:
-    | ( alpha | "_" )+ { () }
+    | ( "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "_" )+ { .* }
 
 literal:
-    | '"' ( alpha | digit | symbol | " " | "'" )+ '"' { Literal(.body[1:-1]) }
-    | "'" ( alpha | digit | symbol | " " | "'" )+ "'" { Literal(.body[1:-1]) }
+    | ('"' ( (!'"') . )+ '"') | ("'" ( (!"'") . )+ "'") { Literal(.*[1:-1]) }
 
 group:
-    | "(" spaces sub=expr spaces ")" { .sub }
+    | "(" spaces expr=expr spaces ")" { .expr }
 choice:
     | try=expr spaces "|" spaces else=expr { either(.try, .else) }
 sequence:
     | head=expr spaces tail=expr { chain(.head, .tail) }
-# option:
-#     | "[" spaces base=expr spaces "]" { either(.base, Nothing()) }
 repeat:
     | expr=expr spaces "+" { Repeat(.expr) }
-#    | expr=expr spaces "*" { either(Repeat(.expr), Nothing()) }
 capture:
     | name=identifier spaces "=" spaces expr=(reference | group) { Capture(.name, .expr) }
 reference:
@@ -40,22 +30,21 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | group | sequence | repeat | capture | reference | literal | reject | anything | nothing) { .expr }
+    | expr=(choice | sequence | repeat | capture | reference | group | literal | reject | anything | nothing) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces action=action { Rule(.expr, .action) }
-    | "|" spaces expr=expr { Rule(.expr, Action("()")) }
 action:
-    | "{" body=(!"}" .+) "}" { Action(.body) }
+    | "{" body=(((!"}") .)+) "}" { Action(.body) }
 
 comment:
-    | "#" (!end_line .) end_line { () }
+    | "#" ((!end_line) .)+ end_line { Discard() }
 blank:
-    | spaces end_line { () }
+    | spaces end_line { Discard() }
 define:
     | name=identifier ":" spaces end_line rules=rules { (.name, .rules) }
 rules:
-    | " " spaces first=rule spaces end_line else=rules { either(.first, .else) }
+    | " " spaces try=rule spaces end_line else=rules { either(.try, .else) }
     | " " spaces rule=rule spaces end_line { .rule }
 top:
     | ( define | comment | blank )+ { .* }
