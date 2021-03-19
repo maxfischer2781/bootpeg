@@ -14,3 +14,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
 ]
+
+[tool.flit.metadata.requires-extra]
+test = [
+    "pytest",
+    "flake8",
+    "flake8-bugbear",
+    "black; implementation_name=='cpython'",
+    "coverage",
+    "pytest-cov",
+]

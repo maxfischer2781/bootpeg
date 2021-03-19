@@ -1,0 +1,22 @@
+[run]
+source =
+    bootpeg
+    tests
+branch = True
+parallel = False
+
+[report]
+show_missing = True
+exclude_lines =
+    # default
+    pragma: no cover
+    # python debug/internals
+    def __repr__
+    if __debug__:
+    assert
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == "__main__"
+    if __name__ == '__main__'
+    @overload
+    if TYPE_CHECKING
