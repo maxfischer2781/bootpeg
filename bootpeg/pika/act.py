@@ -27,8 +27,8 @@ class Debug(Clause[D]):
         except KeyError:
             return None
         else:
-            print('match', self.name, 'at', at, ':', parent_match.length)
-            print("'", mono(source[at:at + parent_match.length]), "'", sep="")
+            print("match", self.name, "at", at, ":", parent_match.length)
+            print("'", mono(source[at : at + parent_match.length]), "'", sep="")
             return parent_match
 
     def __eq__(self, other):
@@ -46,11 +46,12 @@ class Debug(Clause[D]):
 
 class Capture(Clause[D]):
     """Capture the result of matching a clause by name for an :py:class:`~.Action`"""
-    __slots__ = ('name', 'sub_clauses')
+
+    __slots__ = ("name", "sub_clauses")
 
     def __init__(self, name, sub_clause: Clause[D]):
         self.name = name
-        self.sub_clauses = sub_clause,
+        self.sub_clauses = (sub_clause,)
 
     @property
     def maybe_zero(self):
@@ -61,7 +62,11 @@ class Capture(Clause[D]):
         return Match(parent_match.length, (parent_match,), at, self)
 
     def __eq__(self, other):
-        return isinstance(other, Capture) and self.name == other.name and self.sub_clauses == other.sub_clauses
+        return (
+            isinstance(other, Capture)
+            and self.name == other.name
+            and self.sub_clauses == other.sub_clauses
+        )
 
     def __hash__(self):
         return hash((self.name, self.sub_clauses))
@@ -74,10 +79,10 @@ class Capture(Clause[D]):
 
 
 class Rule(Clause[D]):
-    __slots__ = ('sub_clauses', 'action')
+    __slots__ = ("sub_clauses", "action")
 
     def __init__(self, sub_clause: Clause[D], action):
-        self.sub_clauses = sub_clause,
+        self.sub_clauses = (sub_clause,)
         self.action = action
 
     @property
@@ -89,7 +94,11 @@ class Rule(Clause[D]):
         return Match(parent_match.length, (parent_match,), at, self)
 
     def __eq__(self, other):
-        return isinstance(other, Rule) and self.action == other.action and self.sub_clauses == other.sub_clauses
+        return (
+            isinstance(other, Rule)
+            and self.action == other.action
+            and self.sub_clauses == other.sub_clauses
+        )
 
     def __hash__(self):
         return hash((self.action, self.sub_clauses))
@@ -110,7 +119,7 @@ class Discard:
 
 
 class Action:
-    __slots__ = ('literal', '_py_source', '_py_code')
+    __slots__ = ("literal", "_py_source", "_py_code")
     # TODO: Define these via a PEG parser
     unpack = re.compile(r"\.\*")
     named = re.compile(r"(^|[ (])\.([a-zA-Z]+)")
@@ -119,7 +128,7 @@ class Action:
     def __init__(self, literal: str):
         self.literal = literal.strip()
         self._py_source = self._encode(self.literal)
-        self._py_code = compile(self._py_source, self._py_source, 'eval')
+        self._py_code = compile(self._py_source, self._py_source, "eval")
 
     def __call__(self, __namespace, *args, **kwargs):
         try:
@@ -129,11 +138,11 @@ class Action:
 
     @classmethod
     def _encode(cls, literal):
-        names = [f"{cls.mangle}{match.group(2)}" for match in cls.named.finditer(literal)]
+        names = [
+            f"{cls.mangle}{match.group(2)}" for match in cls.named.finditer(literal)
+        ]
         body = cls.named.sub(
-            rf"\1 {cls.mangle}\2",
-            cls.unpack.sub(
-                rf" {cls.mangle}all", literal)
+            rf"\1 {cls.mangle}\2", cls.unpack.sub(rf" {cls.mangle}all", literal)
         )
         return f'lambda {cls.mangle}all, {", ".join(names)}: {body}'
 
@@ -146,9 +155,7 @@ class Action:
 
 class TransformFailure(Exception):
     def __init__(self, clause, matches, captures, exc: Exception):
-        super().__init__(
-            f"failed to transform {clause}: {exc}"
-        )
+        super().__init__(f"failed to transform {clause}: {exc}")
         self.clause = clause
         self.matches = matches
         self.captures = captures
@@ -160,7 +167,9 @@ def transform(head: Match, memo: MemoTable, namespace: Dict[str, Any]):
 
 
 # TODO: Use trampoline/coroutines for infinite depth
-def postorder_transform(match: Match, source: D, namespace: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+def postorder_transform(
+    match: Match, source: D, namespace: Dict[str, Any]
+) -> Tuple[Any, Dict[str, Any]]:
     matches, captures = (), {}
     for sub_match in match.sub_matches:
         sub_matches, sub_captures = postorder_transform(sub_match, source, namespace)
@@ -169,10 +178,12 @@ def postorder_transform(match: Match, source: D, namespace: Dict[str, Any]) -> T
     position, clause = match.position, match.clause
     if isinstance(clause, Capture):
         assert len(matches) <= 1, "Captured rule must provide no more than one value"
-        captures[Action.mangle + clause.name] = matches[0] if matches else source[position:position + match.length]
+        captures[Action.mangle + clause.name] = (
+            matches[0] if matches else source[position : position + match.length]
+        )
         return (), captures
     elif isinstance(clause, Rule):
-        matches = matches if matches else source[position:position + match.length]
+        matches = matches if matches else source[position : position + match.length]
         try:
             result = clause.action(namespace, matches, **captures)
         except Exception as exc:

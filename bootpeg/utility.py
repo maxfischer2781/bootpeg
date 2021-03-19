@@ -1,8 +1,10 @@
-ascii_escapes = str.maketrans({
-    ord('\n'): '␤',
-    ord('\t'): '␉',
-    0: '␀',
-})
+ascii_escapes = str.maketrans(
+    {
+        ord("\n"): "␤",
+        ord("\t"): "␉",
+        0: "␀",
+    }
+)
 
 
 def mono(ascii: str) -> str:

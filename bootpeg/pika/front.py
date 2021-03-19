@@ -1,4 +1,14 @@
-from .peg import Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Parser
+from .peg import (
+    Literal,
+    Sequence,
+    Choice,
+    Nothing,
+    Anything,
+    Not,
+    Repeat,
+    Reference,
+    Parser,
+)
 from .act import Debug, Capture, Rule, transform, Action, Discard
 
 

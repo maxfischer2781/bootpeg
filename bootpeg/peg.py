@@ -8,7 +8,7 @@ import re
 
 
 class MatchFailure(Exception):
-    def __init__(self, expression: 'Expression', remainder: str):
+    def __init__(self, expression: "Expression", remainder: str):
         self.expression = expression
         self.remainder = remainder
         if not remainder:
@@ -18,14 +18,18 @@ class MatchFailure(Exception):
 
 
 class InternalFailure(MatchFailure):
-    def __init__(self, expression: 'Expression', remainder: str, reason: BaseException):
+    def __init__(self, expression: "Expression", remainder: str, reason: BaseException):
         self.expression = expression
         self.remainder = remainder
         self.reason = reason
         if not remainder:
-            Exception.__init__(self, f"Failed to match {expression} at end of source: {reason}")
+            Exception.__init__(
+                self, f"Failed to match {expression} at end of source: {reason}"
+            )
         else:
-            Exception.__init__(self, f"Failed to match {expression} at -{len(remainder)}: {reason}")
+            Exception.__init__(
+                self, f"Failed to match {expression} at -{len(remainder)}: {reason}"
+            )
 
 
 class Match:
@@ -54,19 +58,19 @@ class Match:
         else:
             raise TypeError(f"Unknown key type for {item}")
 
-    def name(self, name: str) -> 'Match':
+    def name(self, name: str) -> "Match":
         assert name not in self.named
         assert len(self.matches) == 1, f"can only name unique matches {name}={self}"
         return Match(*self.matches, **self.named, **{name: self.matches[0]})
 
     def __repr__(self):
-        matches = ', '.join(map(repr, self.matches))
-        named = ', '.join(f"{name}={match!r}" for name, match in self.named.items())
+        matches = ", ".join(map(repr, self.matches))
+        named = ", ".join(f"{name}={match!r}" for name, match in self.named.items())
         return f"{self.__class__.__name__}({matches}{', ' if matches and named else ''}{named})"
 
 
 def skip_recurse(func):
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         if self in outer:
             return False, 0, Match()
         try:
@@ -75,10 +79,13 @@ def skip_recurse(func):
             raise
         except BaseException as err:
             raise InternalFailure(self, source, err)
+
     return match
 
 
-def bind_all(children: 'Tuple[Expression, ...]', grammar: 'Grammar') -> 'Tuple[Expression, ...]':
+def bind_all(
+    children: "Tuple[Expression, ...]", grammar: "Grammar"
+) -> "Tuple[Expression, ...]":
     new_children = tuple(choice.bind(grammar) for choice in children)
     if any(new is not old for new, old in zip(new_children, children)):
         return new_children
@@ -86,7 +93,9 @@ def bind_all(children: 'Tuple[Expression, ...]', grammar: 'Grammar') -> 'Tuple[E
 
 
 class Expression:
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()) -> Tuple[bool, int, Match]:
+    def match(
+        self, source: str, outer: "Set[Expression]" = frozenset()
+    ) -> Tuple[bool, int, Match]:
         return False, 0, Match()
 
     def __or__(self, other):
@@ -110,10 +119,10 @@ class Expression:
         assert isinstance(item, slice) and item.start is not None
         return Repeat(self, item.start)
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         return self
 
-    def label(self, name: str) -> 'Capture':
+    def label(self, name: str) -> "Capture":
         return Capture(name, self)
 
 
@@ -127,11 +136,11 @@ class Regex(Expression):
 
     def __or__(self, other):
         if isinstance(other, Regex):
-            return Regex(self.of + '|' + other.of)
+            return Regex(self.of + "|" + other.of)
         return super().__or__(other)
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         matched = self._pattern.match(source)
         try:
             return True, len(matched.group(1)), Match(matched.group(1))
@@ -152,7 +161,7 @@ class Choice(Expression):
         return super().__or__(other)
 
     # @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         for choice in self.choices:
             matched, length, found = choice.match(source, outer)
             if matched:
@@ -160,9 +169,9 @@ class Choice(Expression):
         return super().match(source, outer)
 
     def __repr__(self):
-        return ' | '.join(map(repr, self.choices))
+        return " | ".join(map(repr, self.choices))
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         choices = bind_all(self.choices, grammar)
         if choices is not grammar:
             return Choice(*choices)
@@ -174,7 +183,7 @@ class Chain(Expression):
         self.parts = parts
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         total_length, total_found = 0, Match()
         for part in self.parts:
             matched, length, found = part.match(source, outer)
@@ -186,7 +195,7 @@ class Chain(Expression):
             outer = set()
         return True, total_length, total_found
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         choices = bind_all(self.parts, grammar)
         if choices is not grammar:
             return Chain(*choices)
@@ -200,13 +209,13 @@ class Inspect(Expression):
     def __init__(self, base: Expression):
         self.base = base
 
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
-        print('match', self.base, 'on', repr(source[:70]), '...')
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
+        print("match", self.base, "on", repr(source[:70]), "...")
         matched, length, found = self.base.match(source, outer)
-        print('match', self.base, ':', matched, length, repr(found)[:70])
+        print("match", self.base, ":", matched, length, repr(found)[:70])
         return matched, length, found
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         base = self.base.bind(grammar)
         if base is not self.base:
             return Inspect(base)
@@ -221,11 +230,11 @@ class Maybe(Expression):
         self.base = base
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         matched, length, found = self.base.match(source, outer)
         return True, length, found
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         base = self.base.bind(grammar)
         if base is not self.base:
             return Maybe(base)
@@ -241,7 +250,7 @@ class Repeat(Expression):
         self.min = min
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         matches, total_length, total_found = 0, 0, Match()
         while source:
             matched, length, found = self.base.match(source, outer)
@@ -254,7 +263,7 @@ class Repeat(Expression):
             outer = set()
         return matches >= self.min, 0, total_found
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         base = self.base.bind(grammar)
         if base is not self.base:
             return Repeat(base, self.min)
@@ -269,13 +278,13 @@ class Required(Expression):
         self.base = base
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         matched, length, found = self.base.match(source, outer)
         if not matched:
             raise MatchFailure(self, source)
         return True, length, found
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         base = self.base.bind(grammar)
         if base is not self.base:
             return Required(base)
@@ -291,13 +300,13 @@ class Capture(Expression):
         self.base = base
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         matched, length, found = self.base.match(source, outer)
         if not matched:
             return super().match(source, outer)
         return matched, length, found.name(self.name)
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         base = self.base.bind(grammar)
         if base is not self.base:
             return Capture(self.name, base)
@@ -313,14 +322,14 @@ class Rule(Expression):
         self.action = action
 
     # @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         matched, length, found = self.base.match(source, outer)
         if not matched:
             return super().match(source, outer)
         # TODO: Should result be unpacked?
         return matched, length, self.action(found)
 
-    def bind(self, grammar: 'Grammar') -> 'Rule':
+    def bind(self, grammar: "Grammar") -> "Rule":
         base = self.base.bind(grammar)
         if base is not self.base:
             return Rule(base, self.action)
@@ -335,10 +344,10 @@ class ForwardReference(Expression):
         self.name = name
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         raise NotImplementedError(f"Rule {self.name} is not implemented by the grammar")
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         if self.name in grammar.rules:
             return Reference(self.name, grammar)
         return self
@@ -348,15 +357,15 @@ class ForwardReference(Expression):
 
 
 class Reference(Expression):
-    def __init__(self, name: str, grammar: 'Grammar'):
+    def __init__(self, name: str, grammar: "Grammar"):
         self.name = name
         self.grammar = grammar
 
     @skip_recurse
-    def match(self, source: str, outer: 'Set[Expression]' = frozenset()):
+    def match(self, source: str, outer: "Set[Expression]" = frozenset()):
         return self.grammar.rules[self.name].match(source, outer)
 
-    def bind(self, grammar: 'Grammar') -> 'Expression':
+    def bind(self, grammar: "Grammar") -> "Expression":
         if grammar is not self.grammar:
             return Reference(self.name, grammar)
         return self
@@ -374,7 +383,7 @@ class Grammar:
         for name, rule in rules.items():
             self.rules[name] = rule.bind(self)
 
-    def add(self, **rules: Rule) -> 'Grammar':
+    def add(self, **rules: Rule) -> "Grammar":
         return Grammar(**self.rules, **rules)
 
 
@@ -399,11 +408,10 @@ class Action:
         body = cls.named.sub(
             r"\1__match['\2']",
             cls.positional.sub(
-                r" __match[\1]",
-                cls.unpack.sub(r" *__match[:]", literal)
-            )
+                r" __match[\1]", cls.unpack.sub(r" *__match[:]", literal)
+            ),
         )
-        return f'lambda __match: Match({body})'
+        return f"lambda __match: Match({body})"
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.literal!r})"
@@ -423,9 +431,9 @@ class Parser:
         except MatchFailure as mf:
             failed_index = len(source) - len(mf.remainder)
             line_start = source.rfind("\n", 0, failed_index) + 1
-            failed_line, *_ = source[line_start:].partition('\n')
-            print("'", failed_line, "'", sep='')
-            print(' ' * (failed_index - line_start), '^~~~>')
+            failed_line, *_ = source[line_start:].partition("\n")
+            print("'", failed_line, "'", sep="")
+            print(" " * (failed_index - line_start), "^~~~>")
             print(mf)
         else:
             return result
@@ -437,22 +445,22 @@ def try_match(expr: Expression, source: str):
     except MatchFailure as mf:
         print("!!!", mf)
         print(source)
-        print(' ' * (len(source) - len(mf.remainder)), '^')
+        print(" " * (len(source) - len(mf.remainder)), "^")
 
 
 if __name__ == "__main__":
     white = Regex(" ")[0:]
     pattern = (
-        Regex("Hello") | Regex("World")
-    ) + white + Capture("name", Regex("Bruce") + Maybe(Regex("Wayne")))
-    rule = Rule(pattern, lambda match: Match(*match.named['name']))
+        (Regex("Hello") | Regex("World"))
+        + white
+        + Capture("name", Regex("Bruce") + Maybe(Regex("Wayne")))
+    )
+    rule = Rule(pattern, lambda match: Match(*match.named["name"]))
     print(rule, rule.match("Hello Bruce"))
     print("-------------")
     g = Grammar(
         parens=Rule(Regex("\(") + ~ForwardReference("expr") + ~Regex("\)")),
     )
-    g = g.add(
-        expr=Rule(ForwardReference("parens") | Regex("[^()]")[1:])
-    )
+    g = g.add(expr=Rule(ForwardReference("parens") | Regex("[^()]")[1:]))
     try_match(g.rules["parens"], "((((Hello))))")
     print(Action(".0 | .1 + .bar")(Match(1, 2, bar=5)))

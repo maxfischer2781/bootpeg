@@ -5,7 +5,7 @@ from functools import partial
 from .peg import Regex, Grammar, Action, ForwardReference, Parser, Rule, Inspect, Match
 
 
-sys.setrecursionlimit(sys.getrecursionlimit()*2)
+sys.setrecursionlimit(sys.getrecursionlimit() * 2)
 
 
 # Minimal parser required to bootstrap an entire EBNF PEG parser
@@ -21,12 +21,22 @@ class Define:
 
 namespace = {
     **{
-        expression.__name__: expression for expression in
-        (Define, Regex, Grammar, Action, ForwardReference, Parser, Rule, Inspect, Match)
+        expression.__name__: expression
+        for expression in (
+            Define,
+            Regex,
+            Grammar,
+            Action,
+            ForwardReference,
+            Parser,
+            Rule,
+            Inspect,
+            Match,
+        )
     },
-    're': re,
+    "re": re,
 }
-namespace['ParseAction'] = ParseAction = partial(Action, namespace=namespace)
+namespace["ParseAction"] = ParseAction = partial(Action, namespace=namespace)
 
 
 spaces = Regex(r"\ *")
@@ -56,7 +66,11 @@ boot = Parser(
             ParseAction(".0[0:]"),
         ),
         capture=Rule(
-            identifier.label("label") + spaces + Regex("=") + spaces + ~expr.label("expr"),
+            identifier.label("label")
+            + spaces
+            + Regex("=")
+            + spaces
+            + ~expr.label("expr"),
             ParseAction("(.expr).label(.label)"),
         ),
         reference=Rule(
@@ -64,16 +78,26 @@ boot = Parser(
             ParseAction("ForwardReference(.0)"),
         ),
         expr=Rule(
-            ForwardReference("choice") | ForwardReference("chain") | ForwardReference("repeat") | ForwardReference("group") | ForwardReference("capture") | ForwardReference("reference") | ForwardReference("literal"),
+            ForwardReference("choice")
+            | ForwardReference("chain")
+            | ForwardReference("repeat")
+            | ForwardReference("group")
+            | ForwardReference("capture")
+            | ForwardReference("reference")
+            | ForwardReference("literal"),
             ParseAction(".0"),
         ),
         rule=Rule(
-            Regex(r"\|") + spaces + ~expr.label("body") + spaces + ~ForwardReference("action").label("action"),
+            Regex(r"\|")
+            + spaces
+            + ~expr.label("body")
+            + spaces
+            + ~ForwardReference("action").label("action"),
             ParseAction("Rule(.body, .action)"),
         ),
         action=Rule(
             Regex("{") + Regex(r"[^}]*").label("body") + spaces + Regex("}"),
-            ParseAction("ParseAction(.body)")
+            ParseAction("ParseAction(.body)"),
         ),
         comment=Rule(
             Regex("#.*?\n"),
@@ -84,13 +108,22 @@ boot = Parser(
             ParseAction(""),
         ),
         define=Rule(
-            identifier.label("name") + Regex(":") + spaces + end_line + ForwardReference("rules").label("rules"),
+            identifier.label("name")
+            + Regex(":")
+            + spaces
+            + end_line
+            + ForwardReference("rules").label("rules"),
             ParseAction("Define(.name, .rules)"),
         ),
         rules=Rule(
-            Regex(r"\ ") + spaces + (
+            Regex(r"\ ")
+            + spaces
+            + (
                 Rule(
-                    ForwardReference("rule").label("first") + spaces + end_line + ForwardReference("rules").label("else"),
+                    ForwardReference("rule").label("first")
+                    + spaces
+                    + end_line
+                    + ForwardReference("rules").label("else"),
                     ParseAction(".first | .else"),
                 )
                 | Rule(
@@ -101,9 +134,13 @@ boot = Parser(
             ParseAction(".rules"),
         ),
         top=Rule(
-            (ForwardReference("comment") | ForwardReference("define") | ForwardReference("empty"))[1:],
+            (
+                ForwardReference("comment")
+                | ForwardReference("define")
+                | ForwardReference("empty")
+            )[1:],
             ParseAction(".*"),
-        )
+        ),
     ),
     top="top",
 )
@@ -111,4 +148,5 @@ boot = Parser(
 
 if __name__ == "__main__":
     from pathlib import Path
+
     print(boot.parse((Path(__file__).parent / "boot.peg").read_text()))
