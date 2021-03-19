@@ -427,7 +427,6 @@ def safe_recurse(default=False):
         @functools.wraps(method)
         def wrapper(self):
             if self in repr_running:
-                print(self, '=>', default)
                 return default
             repr_running.add(self)
             try:
