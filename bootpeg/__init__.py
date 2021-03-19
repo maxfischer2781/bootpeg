@@ -1,3 +1,3 @@
-"""`bootpeg` – the bootstrapping PEG parser"""
+"""bootpeg – the bootstrapping PEG parser"""
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
