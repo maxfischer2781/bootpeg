@@ -6,6 +6,7 @@ Based on https://arxiv.org/pdf/2005.06444.pdf, 2020 by Luke A. D. Hutchison
 from typing import NamedTuple, Generic, TypeVar, Dict, Tuple, Sequence, Optional, NoReturn, Iterable, Set, List
 import copy
 import heapq
+import functools
 
 
 #: Parser domain: The input type for parsing, such as str or bytes
@@ -419,6 +420,25 @@ class UnboundReference(LookupError):
         super().__init__(f"Reference {target!r} not bound in a grammar/parser")
 
 
+def safe_recurse(default=False):
+    def decorator(method):
+        repr_running = set()
+
+        @functools.wraps(method)
+        def wrapper(self):
+            if self in repr_running:
+                print(self, '=>', default)
+                return default
+            repr_running.add(self)
+            try:
+                result = method(self)
+            finally:
+                repr_running.remove(self)
+            return result
+        return wrapper
+    return decorator
+
+
 class Reference(Clause[D]):
     """
     Placeholder for another named clause, matching if the target matches
@@ -429,9 +449,10 @@ class Reference(Clause[D]):
         self.target = target
         self._sub_clause = None
         # TODO: Correct?
-        self._maybe_zero: Optional[bool] = False
+        self._maybe_zero: Optional[bool] = None
 
     @property
+    @safe_recurse(default=False)
     def maybe_zero(self):
         if self._maybe_zero is None:
             if self._sub_clause is None:
