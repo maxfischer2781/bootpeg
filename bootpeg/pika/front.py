@@ -11,6 +11,28 @@ from .peg import (
 )
 from .act import Debug, Capture, Rule, transform, Action, Discard
 
+__all__ = [
+    "chain",
+    "either",
+    # peg
+    "Literal",
+    "Sequence",
+    "Choice",
+    "Nothing",
+    "Anything",
+    "Not",
+    "Repeat",
+    "Reference",
+    "Parser",
+    # act
+    "Debug",
+    "Capture",
+    "Rule",
+    "Action",
+    "Discard",
+    "transform",
+]
+
 
 def chain(left, right) -> Sequence:
     """Chain two clauses efficiently"""
