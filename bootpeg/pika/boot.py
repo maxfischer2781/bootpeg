@@ -257,13 +257,26 @@ parser = Parser(
         Action(".*"),
     ),
 )
+boot_path = pathlib.Path(__file__).parent / "boot.peg"
 
-display(parser)
-for iteration in range(5):
-    with open(pathlib.Path(__file__).parent / "boot.peg") as boot_peg:
-        print("Generation:", iteration)
-        parser = range_parse(
-            boot_peg.read(),
-            parser,
-        )
-        display(parser)
+
+def boot(base_parser: Parser, source: str) -> Parser:
+    head, memo = base_parser.parse(source)
+    assert head.length == len(source)
+    results, _ = transform(head, memo, namespace)
+    return Parser(
+        "top",
+        **{name: clause for name, clause in results[0]},
+    )
+
+
+if __name__ == "__main__":
+    display(parser)
+    for iteration in range(5):
+        with open(boot_path) as boot_peg:
+            print("Generation:", iteration)
+            parser = range_parse(
+                boot_peg.read(),
+                parser,
+            )
+            display(parser)
