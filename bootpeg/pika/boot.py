@@ -68,7 +68,7 @@ parser = Parser(
     ),
     anything=Rule(
         Literal("."),
-        Action("Literal(.*)"),
+        Action("Anything()"),
     ),
     identifier=Repeat(Choice(*(Literal(ch) for ch in string.ascii_letters + '_'))),
     choice=Rule(
