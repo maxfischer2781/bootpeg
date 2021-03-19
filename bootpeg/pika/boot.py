@@ -2,35 +2,76 @@ import string
 import time
 import pathlib
 
-from .peg import Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Parser, postorder_dfs
-from .act import Debug, Capture, Rule, transform, Action
+from .peg import postorder_dfs, ParseFailure, MemoTable
+from .front import *
 from ..utility import ascii_escapes
 
 
 def range_parse(source: str, parser: Parser):
     """Parse ``source`` showing the matched range"""
     start = time.perf_counter()
-    match, memo = parser.parse(source)
+    try:
+        match, memo = parser.parse(source)
+    except ParseFailure as err:
+        report_matches(err.memo)
+        raise
     until = time.perf_counter()
-    print(*(i % 10 for i in range(len(source))), sep='')
-    print(source.translate(ascii_escapes))
-    print('^', '-' * (match.length - 2), '^', sep='')
+    report_matches(memo)
     print(f"{until - start:.3f}s")
-    for define in transform(match, memo, namespace)[0]:
-        assert len(define) == 1, "Only implemented for one-define-per-match"
-        name, clause = next(iter(define.items()))
-        print(f"{name:<10} <-", clause)
+    print(transform(match, memo, namespace)[0][0])
+    return Parser(
+        "top",
+        **{
+            name: clause for name, clause in transform(match, memo, namespace)[0][0]
+        }
+    )
+
+
+def report_matches(memo: MemoTable):
+    """Show matched range(s) by a parsed memo table"""
+    longest_matches = {}
+    for match in memo.matches.values():
+        length, _, position, *_ = match
+        if isinstance(match.clause, Repeat) and isinstance(match.clause.sub_clauses[0], Anything):
+            continue
+        if position not in longest_matches or longest_matches[position].length < length:
+            longest_matches[position] = match
+    report_pos = min(longest_matches)
+    print(*(i % 10 for i in range(len(memo.source))), sep='')
+    print(memo.source.translate(ascii_escapes))
+    while report_pos < len(memo.source):
+        if longest_matches[report_pos].length > 1:
+            print(' ' * report_pos, '^', '-' * (longest_matches[report_pos].length - 2), '^', sep='')
+            print(' ' * report_pos, longest_matches[report_pos].clause)
+        report_pos += longest_matches[report_pos].length
+
+
+def display(parser: Parser):
+    """Display a parser in PEG form"""
+    try:
+        parser._prepare()
+    except Exception:
+        pass
+    else:
+        clauses, _, priorities = parser._compiled_parser
+        print("Total Rules:", len(list(postorder_dfs(clauses[parser.top]))))
+        print(f"{'named rule':<10} <- Prio -", "Clause")
+        for name, clause in sorted(clauses.items(), key=lambda n_c: priorities[n_c[1]]):
+            print(f"{name:<10} <- {priorities[clause]:4d} -", clause)
+            if isinstance(clause, Debug):
+                print('Debugs:', clause.sub_clauses[0])
+        # terminals = [clause for clause in postorder_dfs(clauses[parser.top]) if isinstance(clause, Terminal)]
+        # print("Terminals:", len(terminals))
+        # print(*terminals)
 
 
 namespace = {
     expression.__name__: expression for expression in
-    (Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Capture, Rule, Action)
+    (Literal, Sequence, chain, Choice, either, Nothing, Anything, Not, Repeat, Reference, Capture, Rule, Action, Discard)
 }
 
 
-Letters = Choice(*(Literal(ch) for ch in string.ascii_letters))
-spaces = Choice(Repeat(Literal(" ")), Nothing())
-end_line = Literal("\n")
+end_line = Reference("end_line")  # Literal("\n")
 
 parser = Parser(
     "top",
@@ -41,46 +82,61 @@ parser = Parser(
                 for quote in (Literal("'"), Literal('"'))
             )
         ),
-        Action("Literal(.*)"),
+        Action("Literal(.*[1:-1])"),
+    ),
+    spaces=Rule(
+        Choice(Repeat(Literal(" ")), Nothing()),
+        Action("Discard()"),
+    ),
+    nothing=Rule(
+        Choice(Literal("''"), Literal('""')),
+        Action("Nothing()"),
     ),
     anything=Rule(
         Literal("."),
-        Action("Literal(.*)"),
+        Action("Anything()"),
     ),
-    identifier=Repeat(Choice(Letters, Literal("_"))),
+    end_line=Rule(
+        Literal("\n"),
+        Action("Discard()"),
+    ),
+    identifier=Rule(
+        Repeat(Choice(*(Literal(ch) for ch in string.ascii_letters + '_'))),
+        Action(".*"),
+    ),
     choice=Rule(
-        Sequence(Capture("try", Reference("expr")), spaces, Literal("|"), spaces, Capture("else", Reference("expr"))),
-        Action("Choice(.try, .else)"),
+        Sequence(Capture("try", Reference("expr")), Reference("spaces"), Literal("|"), Reference("spaces"), Capture("else", Reference("expr"))),
+        Action("either(.try, .else)"),
     ),
     group=Rule(
-        Sequence(Literal("("), spaces, Capture("expr", Reference("expr")), spaces, Literal(")")),
+        Sequence(Literal("("), Reference("spaces"), Capture("expr", Reference("expr")), Reference("spaces"), Literal(")")),
         Action(".expr"),
     ),
     sequence=Rule(
-        Sequence(Capture("head", Reference("expr")), spaces, Capture("tail", Reference("expr"))),
-        Action("Sequence(.head, .tail)"),
+        Sequence(Capture("head", Reference("expr")), Reference("spaces"), Capture("tail", Reference("expr"))),
+        Action("chain(.head, .tail)"),
     ),
     repeat=Rule(
-        Sequence(Capture("base", Reference("expr")), spaces, Literal('+')),
-        Action("Repeat(.base)"),
+        Sequence(Capture("expr", Reference("expr")), Reference("spaces"), Literal('+')),
+        Action("Repeat(.expr)"),
     ),
     reference=Rule(
-        Reference("identifier"),
-        Action("Reference(.*)"),
+        Capture("name", Reference("identifier")),
+        Action("Reference(.name)"),
     ),
     capture=Rule(
-        Sequence(Capture("name", Reference("identifier")), spaces, Literal("="), spaces, Capture("rule", Reference("expr"))),
-        Action("Capture(.name, .rule)"),
+        Sequence(Capture("name", Reference("identifier")), Reference("spaces"), Literal("="), Reference("spaces"), Capture("expr", Choice(Reference("reference"), Reference("group")))),
+        Action("Capture(.name, .expr)"),
     ),
     reject=Rule(
-        Sequence(Literal("!"), Capture("expr", Reference("expr"))),
+        Sequence(Literal("!"), Reference("spaces"), Capture("expr", Reference("expr"))),
         Action("Not(.expr)")
     ),
     expr=Rule(
         Capture(
             "expr",
             Choice(
-                Reference("choice"), Reference("sequence"), Reference("repeat"), Reference("group"), Reference("capture"), Reference("reference"), Reference("literal"), Reference("reject"), Reference("anything")
+                Reference("choice"), Reference("sequence"), Reference("repeat"), Reference("capture"), Reference("reference"), Reference("group"), Reference("literal"), Reference("reject"), Reference("anything"), Reference("nothing")
             )
         ),
         Action(".expr"),
@@ -90,54 +146,43 @@ parser = Parser(
         Action("Action(.body)"),
     ),
     rule=Rule(
-        Sequence(Literal("|"), spaces, Capture("expr", Reference("expr")), spaces, Capture("action", Reference("action"))),
+        Sequence(Literal("|"), Reference("spaces"), Capture("expr", Reference("expr")), Reference("spaces"), Capture("action", Reference("action"))),
         Action("Rule(.expr, .action)"),
     ),
-    rules=Rule(
-        Capture(
-            "rule",
-            Choice(
-                Rule(
-                    Sequence(Literal(" "), spaces, Capture("try", Reference("rule")), spaces, end_line, Capture("else", Reference("rules"))),
-                    Action("Choice(.try, .else)"),
-                ),
-                Rule(
-                    Sequence(Literal(" "), spaces, Capture("rule", Reference("rule")), spaces, end_line),
-                    Action(".rule"),
-                ),
-            )
+    rules=Choice(
+        Rule(
+            Sequence(Literal(" "), Reference("spaces"), Capture("try", Reference("rule")), Reference("spaces"), end_line, Capture("else", Reference("rules"))),
+            Action("either(.try, .else)"),
         ),
-        Action(".rule"),
+        Rule(
+            Sequence(Literal(" "), Reference("spaces"), Capture("rule", Reference("rule")), Reference("spaces"), end_line),
+            Action(".rule"),
+        ),
     ),
     define=Rule(
-        Sequence(Capture("name", Reference("identifier")), Literal(':'), spaces, end_line, Capture("rules", Reference("rules"))),
-        Action("{ .name : .rules }"),
+        Sequence(Capture("name", Reference("identifier")), Literal(':'), Reference("spaces"), end_line, Capture("rules", Reference("rules"))),
+        Action("(.name, .rules)"),
     ),
-    comment=Sequence(Literal("#"), Repeat(Sequence(Not(end_line), Anything())), end_line),
-    blank=Sequence(spaces, end_line),
-    top=Repeat(Choice(Reference("define"), Reference("comment"), Reference("blank"))),
+    comment=Rule(
+        Sequence(Literal("#"), Repeat(Sequence(Not(end_line), Anything())), end_line),
+        Action("Discard()"),
+    ),
+    blank=Rule(
+        Sequence(Reference("spaces"), end_line),
+        Action("Discard()"),
+    ),
+    top=Rule(
+        Repeat(Choice(Reference("define"), Reference("comment"), Reference("blank"))),
+        Action(".*"),
+    ),
 )
-print('--------------------------------------------')
-range_parse('''\
-#example
-hello:
-    | a "+" b | a {.*}
-    | c "+" d {.*}
 
-world:
-    | (a=a)+ {.*}
-''',
-parser
-)
-print('--------------------------------------------')
-with open(pathlib.Path(__file__).parent / 'boot.peg') as boot_peg:
-    range_parse(
-        boot_peg.read(),
-        parser,
-    )
-parser._prepare()
-print("Rules:", len(list(postorder_dfs(parser._compiled_parser[0][parser.top]))))
-for name, clause in parser._compiled_parser[0].items():
-    print(f"{name:<10} <-", clause)
-    if isinstance(clause, Debug):
-        print('Debugs:', clause.sub_clauses[0])
+display(parser)
+for iteration in range(5):
+    with open(pathlib.Path(__file__).parent / 'boot.peg') as boot_peg:
+        print('Generation:', iteration)
+        parser = range_parse(
+            boot_peg.read(),
+            parser,
+        )
+        display(parser)

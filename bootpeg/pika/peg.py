@@ -6,6 +6,7 @@ Based on https://arxiv.org/pdf/2005.06444.pdf, 2020 by Luke A. D. Hutchison
 from typing import NamedTuple, Generic, TypeVar, Dict, Tuple, Sequence, Optional, NoReturn, Iterable, Set, List
 import copy
 import heapq
+import functools
 
 
 #: Parser domain: The input type for parsing, such as str or bytes
@@ -33,7 +34,6 @@ class Match(NamedTuple):
         return self.priority < other.priority or self.length > other.length
 
 
-# TODO: Switch to a persistent data structure such as HAMT/PEP603
 class MemoTable(Generic[D]):
     __slots__ = ('matches', 'source')
 
@@ -45,9 +45,7 @@ class MemoTable(Generic[D]):
         try:
             return self.matches[item]
         except KeyError:
-            if isinstance(item.clause, Anything):
-                return item.clause.match(self.source, item.position, self)
-            elif isinstance(item.clause, Not):
+            if isinstance(item.clause, (Not, Anything)):
                 match = item.clause.match(self.source, item.position, self)
                 if match is not None:
                     self.matches[item] = match
@@ -134,7 +132,7 @@ def postorder_dfs(*bases: Clause[D], _seen: Optional[Set[Clause[D]]] = None) -> 
         if base in _seen:
             continue
         _seen.add(base)
-        for sub_clause in base.sub_clauses:
+        for sub_clause in reversed(base.sub_clauses):
             if sub_clause not in _seen:
                 yield from postorder_dfs(sub_clause, _seen=_seen)
         yield base
@@ -315,7 +313,7 @@ class Choice(Clause[D]):
         return f"{self.__class__.__name__}({', '.join(map(repr, self.sub_clauses))})"
 
     def __str__(self):
-        return ' / '.join(map(nested_str, self.sub_clauses))
+        return ' | '.join(map(nested_str, self.sub_clauses))
 
 
 class Repeat(Clause[D]):
@@ -419,6 +417,24 @@ class UnboundReference(LookupError):
         super().__init__(f"Reference {target!r} not bound in a grammar/parser")
 
 
+def safe_recurse(default=False):
+    def decorator(method):
+        repr_running = set()
+
+        @functools.wraps(method)
+        def wrapper(self):
+            if self in repr_running:
+                return default
+            repr_running.add(self)
+            try:
+                result = method(self)
+            finally:
+                repr_running.remove(self)
+            return result
+        return wrapper
+    return decorator
+
+
 class Reference(Clause[D]):
     """
     Placeholder for another named clause, matching if the target matches
@@ -429,9 +445,10 @@ class Reference(Clause[D]):
         self.target = target
         self._sub_clause = None
         # TODO: Correct?
-        self._maybe_zero: Optional[bool] = False
+        self._maybe_zero: Optional[bool] = None
 
     @property
+    @safe_recurse(default=False)
     def maybe_zero(self):
         if self._maybe_zero is None:
             if self._sub_clause is None:
@@ -504,6 +521,7 @@ class Parser(Generic[D]):
             self._compiled_parser = self._compile(self.top, self.clauses)
 
     def parse(self, source: D):
+        """Parse a ``source`` sequence"""
         if self._compiled_parser is None:
             self._compiled_parser = self._compile(self.top, self.clauses)
         owned_clauses, triggers, priorities = self._compiled_parser

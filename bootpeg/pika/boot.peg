@@ -1,55 +1,50 @@
 # minimal EBNF+Actions PEG parser
 # manually maintained, should be in sync with boot.py
-digit:
-    | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" { () }
-alpha:
-    | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" { () }
-symbol:
-    | "!" | "#" | "$" | "%" | "&" | "(" | ")" | "*" | "+" | "," | "-" | "." | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\" | "]" | "^" | "_" | "`" | "{" | "|" | "}" | "~" { () }
 spaces:
-    | " "+ { () }
-    | " " { () }
+    | " "+ | "" { Discard() }
+nothing:
+    | "''" | '""' { Nothing() }
+anything:
+    | "." { Anything() }
+end_line:
+    | "
+" {Discard()}
 identifier:
-    | ( alpha | "_" )+ { () }
+    | ( "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "_" )+ { .* }
 
 literal:
-    | '"' ( alpha | digit | symbol | " " | "'" )+ '"' { Literal(.*) }
-    | "'" ( alpha | digit | symbol | " " | "'" )+ "'" { Literal(.*) }
+    | ('"' ( (!'"') . )+ '"') | ("'" ( (!"'") . )+ "'") { Literal(.*[1:-1]) }
 
 group:
-    | "(" sub=expr ")" { .sub }
+    | "(" spaces expr=expr spaces ")" { .expr }
 choice:
-    | first=expr spaces "|" spaces else=expr { Choice(.first, .else) }
-chain:
-    | first=expr spaces then=expr { Sequence(.first, .then) }
-option:
-    | "[" spaces base=expr spaces "]" { Choice(.base, Nothing()) }
+    | try=expr spaces "|" spaces else=expr { either(.try, .else) }
+sequence:
+    | head=expr spaces tail=expr { chain(.head, .tail) }
 repeat:
-    | expr=expr spaces "*" { Choice(Repeat(.expr), Nothing()) }
-    | expr spaces "+" { Repeat(.expr) }
+    | expr=expr spaces "+" { Repeat(.expr) }
 capture:
-    | name=identifier spaces "=" spaces expr=expr { Capture(.name, .expr) }
+    | name=identifier spaces "=" spaces expr=(reference | group) { Capture(.name, .expr) }
 reference:
     | name=identifier { Reference(.name) }
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | group | chain | option | repeat | require | capture | reference | literal | reject) { .expr }
+    | expr=(choice | sequence | repeat | capture | reference | group | literal | reject | anything | nothing) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces action=action { Rule(.expr, .action) }
-    | "|" spaces expr=expr { Rule(.expr, Action("()")) }
 action:
-    | "{" body=(!"}" .+) "}" { Action(.body) }
+    | "{" body=(((!"}") .)+) "}" { Action(.body) }
 
 comment:
-    | r"#.*?" ENDLINE { () }
-empty:
-    | spaces ENDLINE { () }
+    | "#" ((!end_line) .)+ end_line { Discard() }
+blank:
+    | spaces end_line { Discard() }
 define:
-    | name=identifier ":" spaces ENDLINE rules=rules { (.name, .rules) }
+    | name=identifier ":" spaces end_line rules=rules { (.name, .rules) }
 rules:
-    | " " spaces first=rule spaces ENDLINE else=rules { Choice(.first, .else) }
-    | " " spaces rule=rule spaces ENDLINE { .rule }
+    | " " spaces try=rule spaces end_line else=rules { either(.try, .else) }
+    | " " spaces rule=rule spaces end_line { .rule }
 top:
-    | ( comment | define | empty )+ { .* }
+    | ( define | comment | blank )+ { .* }
