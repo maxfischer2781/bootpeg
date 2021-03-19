@@ -2,6 +2,22 @@
 `bootpeg` – a bootstrapping PEG parser
 ######################################
 
+.. image:: https://img.shields.io/pypi/v/bootpeg.svg
+    :alt: Available on PyPI
+    :target: https://pypi.python.org/pypi/bootpeg/
+
+.. image:: https://github.com/maxfischer2781/bootpeg/actions/workflows/unittests.yml/badge.svg
+    :target: https://github.com/maxfischer2781/bootpeg/actions/workflows/unittests.yml
+    :alt: Unit Tests (master)
+
+.. image:: https://github.com/maxfischer2781/bootpeg/actions/workflows/verification.yml/badge.svg
+    :target: https://github.com/maxfischer2781/bootpeg/actions/workflows/verification.yml
+    :alt: Verification (master)
+
+.. image:: https://codecov.io/gh/maxfischer2781/bootpeg/branch/main/graph/badge.svg
+    :target: https://codecov.io/gh/maxfischer2781/bootpeg
+    :alt: Test Coverage
+
 > Some people, when confronted with a problem, think "I know, I'll use regular expressions." Now they have two problems.
 
 `bootpeg` is a PEG parser for creating parsers – including itself.
