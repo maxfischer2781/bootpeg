@@ -1,24 +1,23 @@
-name: Unit Tests
+name: Static Code Verification
 
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9', 'pypy-3.6', 'pypy-3.7']
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.9'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install .[test]
-    - name: Test with pytest
+    - name: Lint with flake8
       run: |
-        pytest
+        flake8 bootpeg tests
+    - name: Format with black
+      run: |
+        black bootpeg tests --diff --check
