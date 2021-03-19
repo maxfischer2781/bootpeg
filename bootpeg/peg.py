@@ -66,7 +66,8 @@ class Match:
     def __repr__(self):
         matches = ", ".join(map(repr, self.matches))
         named = ", ".join(f"{name}={match!r}" for name, match in self.named.items())
-        return f"{self.__class__.__name__}({matches}{', ' if matches and named else ''}{named})"
+        join = matches and named
+        return f"{self.__class__.__name__}({matches}{', ' if join else ''}{named})"
 
 
 def skip_recurse(func):
@@ -459,7 +460,7 @@ if __name__ == "__main__":
     print(rule, rule.match("Hello Bruce"))
     print("-------------")
     g = Grammar(
-        parens=Rule(Regex("\(") + ~ForwardReference("expr") + ~Regex("\)")),
+        parens=Rule(Regex(r"\(") + ~ForwardReference("expr") + ~Regex(r"\)")),
     )
     g = g.add(expr=Rule(ForwardReference("parens") | Regex("[^()]")[1:]))
     try_match(g.rules["parens"], "((((Hello))))")

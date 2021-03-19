@@ -5,7 +5,23 @@ import pathlib
 from ..utility import ascii_escapes
 from .peg import postorder_dfs, ParseFailure, MemoTable
 from .front import (
-    Literal, Sequence, Choice, Nothing, Anything, Not, Repeat, Reference, Parser, Debug, Capture, Rule, Action, Discard, transform, chain, either
+    Literal,
+    Sequence,
+    Choice,
+    Nothing,
+    Anything,
+    Not,
+    Repeat,
+    Reference,
+    Parser,
+    Debug,
+    Capture,
+    Rule,
+    Action,
+    Discard,
+    transform,
+    chain,
+    either,
 )
 
 
@@ -68,9 +84,6 @@ def display(parser: Parser):
             print(f"{name:<10} <- {priorities[clause]:4d} -", clause)
             if isinstance(clause, Debug):
                 print("Debugs:", clause.sub_clauses[0])
-        # terminals = [clause for clause in postorder_dfs(clauses[parser.top]) if isinstance(clause, Terminal)]
-        # print("Terminals:", len(terminals))
-        # print(*terminals)
 
 
 namespace = {
