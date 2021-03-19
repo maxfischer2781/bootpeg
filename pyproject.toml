@@ -21,5 +21,6 @@ test = [
     "flake8",
     "flake8-bugbear",
     "black; implementation_name=='cpython'",
-    "coverage"
+    "coverage",
+    "pytest-cov",
 ]
