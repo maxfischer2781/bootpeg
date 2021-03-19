@@ -1,4 +1,4 @@
-name: Static Code Verification
+name: Static Checks
 
 on: [push, pull_request]
 
