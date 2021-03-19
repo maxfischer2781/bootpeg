@@ -12,8 +12,6 @@ from .peg import (
 from .act import Debug, Capture, Rule, transform, Action, Discard
 
 __all__ = [
-    "chain",
-    "either",
     # peg
     "Literal",
     "Sequence",
@@ -31,6 +29,9 @@ __all__ = [
     "Action",
     "Discard",
     "transform",
+    # helpers
+    "chain",
+    "either",
 ]
 
 
