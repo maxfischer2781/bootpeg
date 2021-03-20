@@ -55,6 +55,8 @@ def report_matches(memo: MemoTable):
         if position not in longest_matches or longest_matches[position].length < length:
             longest_matches[position] = match
     report_pos = min(longest_matches)
+    print(*(' ' if i % 10 else i % 1000 // 100 for i in range(len(memo.source))), sep="")
+    print(*(' ' if i % 10 else i % 100 // 10 for i in range(len(memo.source))), sep="")
     print(*(i % 10 for i in range(len(memo.source))), sep="")
     print(memo.source.translate(ascii_escapes))
     while report_pos < len(memo.source):
