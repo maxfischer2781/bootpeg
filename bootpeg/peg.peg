@@ -1,6 +1,6 @@
 # Full PEG+Actions parser
 spaces:
-    | " "+ | "" { Discard() }
+    | [ " "+ ] { Discard() }
 nothing:
     | "''" | '""' { Nothing() }
 anything:
@@ -16,6 +16,8 @@ literal:
 range:
     | first=literal spaces "-" spaces last=literal { Range(.first.value, .last.value) }
 
+optional:
+    | "[" spaces expr=expr spaces "]" { either(.expr, Nothing()) }
 group:
     | "(" spaces expr=expr spaces ")" { .expr }
 choice:
@@ -31,7 +33,7 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | capture | reference | group | range | literal | reject | anything | nothing) { .expr }
+    | expr=(choice | sequence | repeat | capture | reference | group | optional | range | literal | reject | anything | nothing) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
