@@ -83,7 +83,11 @@ class Range(Terminal[D]):
         return None
 
     def __eq__(self, other):
-        return isinstance(other, Range) and self.first == other.first and self.last == other.last
+        return (
+            isinstance(other, Range)
+            and self.first == other.first
+            and self.last == other.last
+        )
 
     def __hash__(self):
         return hash((self.first, self.last))
