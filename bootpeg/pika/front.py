@@ -1,4 +1,3 @@
-from typing import NamedTuple, Callable
 from .peg import (
     Literal,
     Sequence,
