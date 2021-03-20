@@ -14,6 +14,8 @@ identifier:
 
 literal:
     | ('"' ( (!'"') . )+ '"') | ("'" ( (!"'") . )+ "'") { Literal(.*[1:-1]) }
+range:
+    | first=literal spaces "-" spaces last=literal { Range(.first.value, .last.value) }
 
 group:
     | "(" spaces expr=expr spaces ")" { .expr }
@@ -30,12 +32,10 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | capture | reference | group | literal | reject | anything | nothing) { .expr }
+    | expr=(choice | sequence | repeat | capture | reference | group | range | literal | reject | anything | nothing) { .expr }
 
 rule:
-    | "|" spaces expr=expr spaces action=action { Rule(.expr, .action) }
-action:
-    | "{" body=(((!"}") .)+) "}" { Action(.body) }
+    | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
 
 comment:
     | "#" ((!end_line) .)+ end_line { Discard() }

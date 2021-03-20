@@ -22,6 +22,7 @@ from .front import (
     transform,
     chain,
     either,
+    Range,
 )
 
 
@@ -105,6 +106,7 @@ namespace = {
         Rule,
         Action,
         Discard,
+        Range,
     )
 }
 
