@@ -275,6 +275,7 @@ parser = Parser(
     ),
 )
 boot_path = pathlib.Path(__file__).parent / "boot.peg"
+full_path = pathlib.Path(__file__).parent.parent / "peg.peg"
 
 
 def boot(base_parser: Parser, source: str) -> Parser:
@@ -289,11 +290,19 @@ def boot(base_parser: Parser, source: str) -> Parser:
 
 if __name__ == "__main__":
     display(parser)
-    for iteration in range(5):
+    for iteration in range(2):
         with open(boot_path) as boot_peg:
             print("Generation:", iteration)
             parser = range_parse(
                 boot_peg.read(),
+                parser,
+            )
+            display(parser)
+    for iteration in range(2, 4):
+        with open(full_path) as base_peg:
+            print("Generation:", iteration)
+            parser = range_parse(
+                base_peg.read(),
                 parser,
             )
             display(parser)
