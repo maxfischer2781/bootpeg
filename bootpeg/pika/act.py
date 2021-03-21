@@ -104,7 +104,7 @@ class Rule(Clause[D]):
         return hash((self.action, self.sub_clauses))
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
+        return f"{self.__class__.__name__}({self.sub_clauses[0]!r}, {self.action!r})"
 
     def __str__(self):
         return f"| {self.sub_clauses[0]} {self.action}"
@@ -145,6 +145,12 @@ class Action:
             rf"\1 {cls.mangle}\2", cls.unpack.sub(rf" {cls.mangle}all", literal)
         )
         return f'lambda {cls.mangle}all, {", ".join(names)}: {body}'
+
+    def __eq__(self, other):
+        return isinstance(other, Action) and self.literal == other.literal
+
+    def __hash__(self):
+        return hash(self.literal)
 
     def __str__(self):
         return f"{{{self.literal}}}"
