@@ -98,24 +98,20 @@ class ActionCaptureError(TypeError):
         msg = f"extra {', '.join(map(repr, extra))}" if extra else ""
         msg += " and " if extra and missing else ""
         msg += f"missing {', '.join(map(repr, missing))}" if missing else ""
-        super().__init__(
-            f"{msg} captures: {self.rule}"
-        )
+        super().__init__(f"{msg} captures: {self.rule}")
 
 
 class Rule(Clause[D]):
     __slots__ = ("sub_clauses", "action", "_hash")
 
-    def __init__(self, sub_clause: Clause[D], action: 'Action'):
+    def __init__(self, sub_clause: Clause[D], action: "Action"):
         self.sub_clauses = (sub_clause,)
         self.action = action
         self._hash = None
         self._verify_captures()
 
     def _verify_captures(self):
-        captured_names = {
-            capture.name for capture in captures(self.sub_clauses[0])
-        }
+        captured_names = {capture.name for capture in captures(self.sub_clauses[0])}
         if captured_names.symmetric_difference(self.action.parameters):
             additional = captured_names.difference(self.action.parameters)
             missing = set(self.action.parameters) - captured_names
