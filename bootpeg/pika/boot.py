@@ -22,6 +22,7 @@ from .front import (
     transform,
     chain,
     either,
+    Range,
 )
 
 
@@ -55,6 +56,10 @@ def report_matches(memo: MemoTable):
         if position not in longest_matches or longest_matches[position].length < length:
             longest_matches[position] = match
     report_pos = min(longest_matches)
+    print(
+        *(" " if i % 10 else i % 1000 // 100 for i in range(len(memo.source))), sep=""
+    )
+    print(*(" " if i % 10 else i % 100 // 10 for i in range(len(memo.source))), sep="")
     print(*(i % 10 for i in range(len(memo.source))), sep="")
     print(memo.source.translate(ascii_escapes))
     while report_pos < len(memo.source):
@@ -103,6 +108,7 @@ namespace = {
         Rule,
         Action,
         Discard,
+        Range,
     )
 }
 
@@ -273,6 +279,7 @@ parser = Parser(
     ),
 )
 boot_path = pathlib.Path(__file__).parent / "boot.peg"
+full_path = pathlib.Path(__file__).parent.parent / "peg.peg"
 
 
 def boot(base_parser: Parser, source: str) -> Parser:
@@ -287,11 +294,19 @@ def boot(base_parser: Parser, source: str) -> Parser:
 
 if __name__ == "__main__":
     display(parser)
-    for iteration in range(5):
+    for iteration in range(2):
         with open(boot_path) as boot_peg:
             print("Generation:", iteration)
             parser = range_parse(
                 boot_peg.read(),
+                parser,
+            )
+            display(parser)
+    for iteration in range(2, 4):
+        with open(full_path) as base_peg:
+            print("Generation:", iteration)
+            parser = range_parse(
+                base_peg.read(),
                 parser,
             )
             display(parser)

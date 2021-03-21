@@ -379,7 +379,7 @@ class Repeat(Clause[D]):
             )
 
     def __eq__(self, other):
-        return isinstance(other, Not) and self._sub_clause == other._sub_clause
+        return isinstance(other, Repeat) and self._sub_clause == other._sub_clause
 
     def __hash__(self):
         return hash(self.sub_clauses)
