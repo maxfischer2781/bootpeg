@@ -1,6 +1,6 @@
 # Full PEG+Actions parser
 spaces:
-    | " "* { Discard() }
+    | " "*
 nothing:
     | "''" | '""' { Nothing() }
 anything:
@@ -38,6 +38,7 @@ expr:
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
+    | "|" spaces expr=expr { Rule(.expr, Action("Discard()")) }
 
 comment:
     | "#" ((!end_line) .)+ end_line { Discard() }
