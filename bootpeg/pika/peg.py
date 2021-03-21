@@ -69,15 +69,14 @@ class MemoTable(Generic[D]):
                 return match
             raise  # if you see this, the priorities are wrong. Please open a ticket!
 
-    def insert(self, item: MemoKey, match: Optional[Match]) -> bool:
+    def insert(self, item: MemoKey, match: Match) -> bool:
         """
         Insert new match for item and return whether an update occurred
         """
-        if match is not None:
-            prev_match = self.matches.get(item)
-            if prev_match is None or match.overrules(prev_match):
-                self.matches[item] = match
-                return True
+        prev_match = self.matches.get(item)
+        if prev_match is None or match.overrules(prev_match):
+            self.matches[item] = match
+            return True
         return False
 
 
@@ -576,12 +575,12 @@ class Parser(Generic[D]):
         ]
         heapq.heapify(terminals)
         memo = MemoTable(source)
-        for position in reversed(range(len(source))):
+        for at in reversed(range(len(source))):
             outstanding = terminals[:]
             while outstanding:
                 clause = heapq.heappop(outstanding)[1]
-                result = clause.match(source, position, memo)
-                if memo.insert(MemoKey(position, clause), result):
+                result = clause.match(source, at, memo)
+                if result is not None and memo.insert(MemoKey(at, clause), result):
                     for parent_clause in triggers[clause]:
                         heapq.heappush(
                             outstanding, (priorities[parent_clause], parent_clause)
