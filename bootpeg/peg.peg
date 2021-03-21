@@ -1,6 +1,6 @@
 # Full PEG+Actions parser
 spaces:
-    | [ " "+ ] { Discard() }
+    | " "* { Discard() }
 nothing:
     | "''" | '""' { Nothing() }
 anything:
@@ -26,6 +26,7 @@ sequence:
     | head=expr spaces tail=expr { chain(.head, .tail) }
 repeat:
     | expr=expr spaces "+" { Repeat(.expr) }
+    | expr=expr spaces "*" { either(Repeat(.expr), Nothing()) }
 capture:
     | name=identifier spaces "=" spaces expr=(reference | group) { Capture(.name, .expr) }
 reference:
