@@ -35,9 +35,13 @@ def range_parse(source: str, parser: Parser):
         report_matches(err.memo)
         raise
     until = time.perf_counter()
+    print(
+        f"Duration: {until - start:4.3f}s",
+        f"Matches: {len(memo.matches)} / {len(source)}",
+        f"[{len(memo.matches)/len(source):.1f} m/s]",
+        f"Coverage: {match.length} [{match.length / len(source) * 100: 3.0f}%]",
+    )
     report_matches(memo)
-    print(f"{until - start:.3f}s")
-    print(transform(match, memo, namespace)[0][0])
     return Parser(
         "top",
         **{name: clause for name, clause in transform(match, memo, namespace)[0][0]},
@@ -293,20 +297,20 @@ def boot(base_parser: Parser, source: str) -> Parser:
 
 
 if __name__ == "__main__":
-    display(parser)
     for iteration in range(2):
         with open(boot_path) as boot_peg:
             print("Generation:", iteration)
+            display(parser)
             parser = range_parse(
                 boot_peg.read(),
                 parser,
             )
-            display(parser)
     for iteration in range(2, 4):
         with open(full_path) as base_peg:
             print("Generation:", iteration)
+            display(parser)
             parser = range_parse(
                 base_peg.read(),
                 parser,
             )
-            display(parser)
+    display(parser)
