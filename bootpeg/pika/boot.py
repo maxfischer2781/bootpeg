@@ -3,7 +3,7 @@ import time
 import pathlib
 
 from ..utility import ascii_escapes
-from .peg import postorder_dfs, ParseFailure, MemoTable
+from .peg import postorder_dfs, ParseFailure, MemoTable, Match
 from .front import (
     Literal,
     Sequence,
@@ -26,6 +26,13 @@ from .front import (
 )
 
 
+def sum_matches(match: Match) -> int:
+    total = 1
+    for sub_match in match.sub_matches:
+        total += sum_matches(sub_match)
+    return total
+
+
 def range_parse(source: str, parser: Parser):
     """Parse ``source`` showing the matched range"""
     start = time.perf_counter()
@@ -37,9 +44,10 @@ def range_parse(source: str, parser: Parser):
     until = time.perf_counter()
     print(
         f"Duration: {until - start:4.3f}s",
-        f"Matches: {len(memo.matches)} / {len(source)}",
-        f"[{len(memo.matches)/len(source):.1f} m/s]",
-        f"Coverage: {match.length} [{match.length / len(source) * 100: 3.0f}%]",
+        f"Matches: {len(memo.matches)} / {len(source)} items",
+        f"[{len(memo.matches)/len(source):.1f} m/i]",
+        f"Efficiency: {sum_matches(match)} used / {len(memo.matches)} matched",
+        f"[{sum_matches(match) / len(memo.matches):.2f} u/m]",
     )
     report_matches(memo)
     return Parser(
