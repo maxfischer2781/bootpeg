@@ -20,6 +20,8 @@ import copy
 import heapq
 import functools
 
+from ..utility import cache_hash
+
 
 #: Parser domain: The input type for parsing, such as str or bytes
 D = TypeVar("D", covariant=True, bound=Sequence)
@@ -206,7 +208,7 @@ class Anything(Terminal[D]):
         return isinstance(other, Anything) and self.length == other.length
 
     def __hash__(self):
-        return hash(self.length)
+        return self.length
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.length})"
@@ -250,7 +252,7 @@ class Sequence(Clause[D]):
     A sequence of clauses, matching if all ``sub_clauses`` match in order
     """
 
-    __slots__ = ("sub_clauses", "_maybe_zero")
+    __slots__ = ("sub_clauses", "_maybe_zero", "_hash")
 
     @property
     def maybe_zero(self):
@@ -273,6 +275,7 @@ class Sequence(Clause[D]):
     def __init__(self, *sub_clauses: Clause[D]):
         self.sub_clauses = sub_clauses
         self._maybe_zero = None
+        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         offset, matches = at, ()
@@ -288,6 +291,7 @@ class Sequence(Clause[D]):
     def __eq__(self, other):
         return isinstance(other, Sequence) and self.sub_clauses == other.sub_clauses
 
+    @cache_hash
     def __hash__(self):
         return hash(self.sub_clauses)
 
@@ -303,7 +307,7 @@ class Choice(Clause[D]):
     A choice of clauses, matching with the first matching clause of ``sub_clauses``
     """
 
-    __slots__ = ("sub_clauses", "_maybe_zero")
+    __slots__ = ("sub_clauses", "_maybe_zero", "_hash")
 
     @property
     def maybe_zero(self):
@@ -314,6 +318,7 @@ class Choice(Clause[D]):
     def __init__(self, *sub_clauses: Clause[D]):
         self.sub_clauses = sub_clauses
         self._maybe_zero = None
+        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         for index, sub_clause in enumerate(self.sub_clauses):
@@ -328,6 +333,7 @@ class Choice(Clause[D]):
     def __eq__(self, other):
         return isinstance(other, Choice) and self.sub_clauses == other.sub_clauses
 
+    @cache_hash
     def __hash__(self):
         return hash(self.sub_clauses)
 
@@ -343,7 +349,7 @@ class Repeat(Clause[D]):
     A repetition of a clause, matching if the sub_clause matches at least once
     """
 
-    __slots__ = ("_sub_clause",)
+    __slots__ = ("_sub_clause", "_hash")
 
     @property
     def maybe_zero(self):
@@ -360,6 +366,7 @@ class Repeat(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self._sub_clause = sub_clause
+        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         try:
@@ -381,8 +388,9 @@ class Repeat(Clause[D]):
     def __eq__(self, other):
         return isinstance(other, Repeat) and self._sub_clause == other._sub_clause
 
+    @cache_hash
     def __hash__(self):
-        return hash(self.sub_clauses)
+        return hash(self._sub_clause)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._sub_clause!r})"
@@ -396,7 +404,7 @@ class Not(Clause[D]):
     The inversion of a clause, matching if the sub_clause does not match
     """
 
-    __slots__ = ("_sub_clause",)
+    __slots__ = ("_sub_clause", "_hash")
     maybe_zero = True
 
     @property
@@ -413,6 +421,7 @@ class Not(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self._sub_clause = sub_clause
+        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         try:
@@ -425,8 +434,9 @@ class Not(Clause[D]):
     def __eq__(self, other):
         return isinstance(other, Not) and self._sub_clause == other._sub_clause
 
+    @cache_hash
     def __hash__(self):
-        return hash(self.sub_clauses)
+        return hash(self._sub_clause)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._sub_clause!r})"
@@ -468,11 +478,12 @@ class Reference(Clause[D]):
     Placeholder for another named clause, matching if the target matches
     """
 
-    __slots__ = ("target", "_sub_clause", "_maybe_zero")
+    __slots__ = ("target", "_sub_clause", "_maybe_zero", "_hash")
 
     def __init__(self, target: str):
         self.target = target
         self._sub_clause = None
+        self._hash = None
         # TODO: Correct?
         self._maybe_zero: Optional[bool] = None
 
@@ -516,6 +527,7 @@ class Reference(Clause[D]):
     def __eq__(self, other):
         return isinstance(other, Reference) and self.target == other.target
 
+    @cache_hash
     def __hash__(self):
         return hash(self.target)
 

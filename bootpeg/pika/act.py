@@ -5,7 +5,7 @@ from typing import TypeVar, Any, Dict, Tuple
 import re
 
 from .peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str
-from ..utility import mono
+from ..utility import mono, cache_hash
 
 
 #: Parser result: The output type for parsing, such as (str, ...)
@@ -47,11 +47,12 @@ class Debug(Clause[D]):
 class Capture(Clause[D]):
     """Capture the result of matching a clause by name for an :py:class:`~.Action`"""
 
-    __slots__ = ("name", "sub_clauses")
+    __slots__ = ("name", "sub_clauses", "_hash")
 
     def __init__(self, name, sub_clause: Clause[D]):
         self.name = name
         self.sub_clauses = (sub_clause,)
+        self._hash = None
 
     @property
     def maybe_zero(self):
@@ -68,6 +69,7 @@ class Capture(Clause[D]):
             and self.sub_clauses == other.sub_clauses
         )
 
+    @cache_hash
     def __hash__(self):
         return hash((self.name, self.sub_clauses))
 
@@ -79,11 +81,12 @@ class Capture(Clause[D]):
 
 
 class Rule(Clause[D]):
-    __slots__ = ("sub_clauses", "action")
+    __slots__ = ("sub_clauses", "action", "_hash")
 
     def __init__(self, sub_clause: Clause[D], action):
         self.sub_clauses = (sub_clause,)
         self.action = action
+        self._hash = None
 
     @property
     def maybe_zero(self):
@@ -100,6 +103,7 @@ class Rule(Clause[D]):
             and self.sub_clauses == other.sub_clauses
         )
 
+    @cache_hash
     def __hash__(self):
         return hash((self.action, self.sub_clauses))
 
