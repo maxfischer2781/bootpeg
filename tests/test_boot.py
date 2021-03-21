@@ -1,3 +1,5 @@
+import pytest
+
 from bootpeg.pika import boot
 
 
@@ -24,3 +26,7 @@ def test_features():
     opt_repeat = boot.boot(parser, 'rule:\n    | [ " "+ ]\n')
     non_repeat = boot.boot(parser, 'rule:\n    | " "*\n')
     assert opt_repeat.clauses == non_repeat.clauses
+    with pytest.raises(TypeError):
+        boot.boot(parser, 'rule:\n    | [ " "+ ] { .missing }\n')
+    with pytest.raises(TypeError):
+        boot.boot(parser, 'rule:\n    | extra=([ " "+ ]) { () }\n')
