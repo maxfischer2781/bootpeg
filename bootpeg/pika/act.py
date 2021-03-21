@@ -123,7 +123,7 @@ class Discard:
 
 
 class Action:
-    __slots__ = ("literal", "_py_source", "_py_code")
+    __slots__ = ("literal", "_py_names", "_py_source", "_py_code")
     # TODO: Define these via a PEG parser
     unpack = re.compile(r"\.\*")
     named = re.compile(r"(^|[ (])\.([a-zA-Z]+)")
@@ -131,8 +131,14 @@ class Action:
 
     def __init__(self, literal: str):
         self.literal = literal.strip()
+        self._py_names = tuple(match.group(2) for match in self.named.finditer(literal))
         self._py_source = self._encode(self.literal)
         self._py_code = compile(self._py_source, self._py_source, "eval")
+
+    @property
+    def parameters(self) -> Tuple[str, ...]:
+        """The parameter names used by the action"""
+        return self._py_names
 
     def __call__(self, __namespace, *args, **kwargs):
         try:
@@ -140,15 +146,12 @@ class Action:
         except Exception as err:
             raise type(err)(f"{err} <{self._py_source}>")
 
-    @classmethod
-    def _encode(cls, literal):
-        names = [
-            f"{cls.mangle}{match.group(2)}" for match in cls.named.finditer(literal)
-        ]
-        body = cls.named.sub(
-            rf"\1 {cls.mangle}\2", cls.unpack.sub(rf" {cls.mangle}all", literal)
+    def _encode(self, literal):
+        names = [f"{self.mangle}{name}" for name in self._py_names]
+        body = self.named.sub(
+            rf"\1 {self.mangle}\2", self.unpack.sub(rf" {self.mangle}all", literal)
         )
-        return f'lambda {cls.mangle}all, {", ".join(names)}: {body}'
+        return f'lambda {self.mangle}all, {", ".join(names)}: {body}'
 
     def __eq__(self, other):
         return isinstance(other, Action) and self.literal == other.literal
