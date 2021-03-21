@@ -59,7 +59,7 @@ class MemoTable(Generic[D]):
         try:
             return self.matches[item]
         except KeyError:
-            if isinstance(item.clause, (Not, Anything)):
+            if isinstance(item.clause, Not):
                 match = item.clause.match(self.source, item.position, self)
                 if match is not None:
                     self.matches[item] = match
