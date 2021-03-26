@@ -12,9 +12,11 @@ identifier:
     | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
 
 literal:
-    | ('"' ( (!'"') . )+ '"') | ("'" ( (!"'") . )+ "'") { Literal(.*[1:-1]) }
+    | ('"' :: '"') | ("'" :: "'") { Literal(.*[1:-1]) }
 range:
     | first=literal spaces "-" spaces last=literal { Range(.first.value, .last.value) }
+delimited:
+    | start=expr spaces "::" spaces stop=expr { Delimited(.start, .stop) }
 
 optional:
     | "[" spaces expr=expr spaces "]" { either(.expr, Nothing()) }
@@ -34,7 +36,7 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | capture | reference | group | optional | range | literal | reject | anything | nothing) { .expr }
+    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | range | literal | reject | anything | nothing) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
