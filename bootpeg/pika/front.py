@@ -105,6 +105,10 @@ class Range(Terminal[D]):
 
 
 class Delimited(Clause[D]):
+    """
+    A pair of clauses with arbitrary intermediate filler
+    """
+
     __slots__ = ("sub_clauses",)
 
     @property
