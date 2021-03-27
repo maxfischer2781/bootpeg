@@ -23,6 +23,7 @@ from .front import (
     chain,
     either,
     Range,
+    Delimited,
 )
 
 
@@ -121,6 +122,7 @@ namespace = {
         Action,
         Discard,
         Range,
+        Delimited,
     )
 }
 

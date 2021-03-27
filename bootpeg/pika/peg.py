@@ -225,7 +225,7 @@ class Literal(Terminal[D]):
     maybe_zero = False
 
     def __init__(self, value: D):
-        assert value
+        assert value, "Literal may not be empty"
         self.value = value
 
     def match(self, source: D, at: int, memo: MemoTable):
