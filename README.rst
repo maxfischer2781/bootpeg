@@ -21,12 +21,10 @@
 > Some people, when confronted with a problem, think "I know, I'll use regular expressions." Now they have two problems.
 
 `bootpeg` is a PEG parser for creating parsers – including itself.
-By default, it supports EBNF with actions akin to `PEP 617`_.
+By default, it supports a modified EBNF with actions akin to `PEP 617`_.
 
 .. code-block:: bash
 
-    # legacy naive PEG parser
-    $ python3 -m bootpeg.boot
     # memoizing bottom-up PEG parser
     $ python3 -m bootpeg.pika.boot
 
@@ -35,6 +33,8 @@ Unlike most other Python PEG parsers which are top-down Packrat parsers,
 it handles left-recursive grammars natively,
 allows recovering partial parse results,
 and runs in linear time for usual inputs.
+This makes it straightforward to define custom grammars without
+worrying about their implementation.
 
 Do I need a bigger boot?
 ------------------------
