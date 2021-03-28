@@ -12,17 +12,15 @@ def test_bootstrap():
 
 
 def test_escalate():
-    boot_peg = boot.boot_path.read_text()
     full_peg = boot.full_path.read_text()
-    parser = boot.boot(boot.min_parser, boot_peg)
+    parser = boot.bootpeg()
     for _ in range(2):
         parser = boot.boot(parser, full_peg)
 
 
 def test_features():
-    boot_peg = boot.boot_path.read_text()
     full_peg = boot.full_path.read_text()
-    parser = boot.boot(boot.boot(boot.min_parser, boot_peg), full_peg)
+    parser = boot.boot(boot.bootpeg(), full_peg)
     opt_repeat = boot.boot(parser, 'rule:\n    | [ " "+ ]\n')
     non_repeat = boot.boot(parser, 'rule:\n    | " "*\n')
     assert opt_repeat.clauses == non_repeat.clauses
