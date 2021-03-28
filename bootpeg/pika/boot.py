@@ -295,8 +295,8 @@ min_parser = Parser(
         Action(".*"),
     ),
 )
-boot_path = pathlib.Path(__file__).parent / "boot.peg"
-full_path = pathlib.Path(__file__).parent.parent / "peg.peg"
+boot_path = pathlib.Path(__file__).parent / "boot.bpeg"
+full_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
 
 
 def boot(base_parser: Parser, source: str) -> Parser:
