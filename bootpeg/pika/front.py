@@ -42,6 +42,7 @@ __all__ = [
     "chain",
     "either",
     "Range",
+    "Delimited",
 ]
 
 
