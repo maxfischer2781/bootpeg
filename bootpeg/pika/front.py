@@ -19,6 +19,7 @@ from .peg import (
     D,
 )
 from .act import Debug, Capture, Rule, transform, Action, Discard
+from ..utility import cache_hash
 
 __all__ = [
     # peg
@@ -110,7 +111,7 @@ class Delimited(Clause[D]):
     A pair of clauses with arbitrary intermediate filler
     """
 
-    __slots__ = ("sub_clauses",)
+    __slots__ = ("sub_clauses", "_hash")
 
     @property
     def maybe_zero(self):
@@ -119,6 +120,7 @@ class Delimited(Clause[D]):
 
     def __init__(self, start: Clause[D], stop: Clause[D]):
         self.sub_clauses = start, stop
+        self._hash = None
 
     @property
     def triggers(self) -> "Tuple[Clause[D]]":
@@ -135,6 +137,13 @@ class Delimited(Clause[D]):
             else:
                 return Match(offset + tail.length, (head, tail), at, self)
         return None
+
+    def __eq__(self, other):
+        return isinstance(other, Delimited) and self.sub_clauses == other.sub_clauses
+
+    @cache_hash
+    def __hash__(self):
+        return hash(self.sub_clauses)
 
     def __repr__(self):
         start, stop = self.sub_clauses
