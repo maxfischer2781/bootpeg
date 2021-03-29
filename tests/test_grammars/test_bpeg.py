@@ -1,13 +1,32 @@
 import pytest
 
 from bootpeg.grammars import bpeg
-from bootpeg.pika.front import Rule, Literal, Nothing, Anything
+from bootpeg.pika.front import (
+    Rule,
+    Literal,
+    Nothing,
+    Anything,
+    Sequence,
+    Choice,
+    Repeat,
+    Not,
+    Range,
+    Delimited,
+)
 
 
 clauses = [
-    *(Literal(literal) for literal in ("A", "x", "ß", " ")),
     Nothing(),
     Anything(1),
+    *(Literal(literal) for literal in ("A", "x", "ß", " ")),
+    Sequence(Literal("A"), Literal("B"), Literal("A")),
+    Sequence(Literal(" "), Literal(" ")),
+    Choice(Literal("a"), Literal("b"), Nothing()),
+    Repeat(Literal("x")),
+    Repeat(Sequence(Literal("x"), Literal("y"), Literal("z"))),
+    Not(Literal("a")),
+    Range("a", "b"),
+    Delimited(Literal("'"), Literal("'")),
 ]
 
 
