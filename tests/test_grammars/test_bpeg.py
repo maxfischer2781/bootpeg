@@ -16,7 +16,7 @@ def test_roundtrip(clause):
     clause = clause
     literal = bpeg.unparse(clause)
     assert literal
-    parsed_rule: Rule = bpeg.parse(
-        f"parse_test:\n    | {literal}\n"
-    ).clauses['parse_test']
+    parsed_rule: Rule = bpeg.parse(f"parse_test:\n    | {literal}\n").clauses[
+        "parse_test"
+    ]
     assert parsed_rule.sub_clauses[0] == clause

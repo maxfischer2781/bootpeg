@@ -5,7 +5,18 @@ from typing import Union, NamedTuple, Mapping, Callable, Optional, Any
 from functools import singledispatch
 from pathlib import Path
 
-from ..pika.peg import Clause, Nothing, Anything, Literal, Sequence, Choice, Repeat, Not, Reference, Parser
+from ..pika.peg import (
+    Clause,
+    Nothing,
+    Anything,
+    Literal,
+    Sequence,
+    Choice,
+    Repeat,
+    Not,
+    Reference,
+    Parser,
+)
 from ..pika.act import Capture, Rule, transform
 from ..pika.front import Range, Delimited
 from ..pika.boot import namespace, bootpeg, boot
@@ -24,7 +35,7 @@ def unparse_nothing(clause: Nothing, top=True) -> str:
 
 @unparse.register(Anything)
 def unparse_anything(clause: Anything, top=True) -> str:
-    return '.' * clause.length
+    return "." * clause.length
 
 
 @unparse.register(Literal)
@@ -50,7 +61,7 @@ def unparse_choice(clause: Choice, top=True) -> str:
 
 @unparse.register(Repeat)
 def unparse_repeat(clause: Repeat, top=True) -> str:
-    return unparse(clause.sub_clauses[0], top=False) + '+'
+    return unparse(clause.sub_clauses[0], top=False) + "+"
 
 
 @unparse.register(Not)
@@ -98,7 +109,7 @@ PikaActions = Actions(
     post=lambda *args, **kwargs: Parser(
         "top",
         **{name: clause for name, clause in args[0]},
-    )
+    ),
 )
 
 _parser_cache: Optional[Parser] = None
