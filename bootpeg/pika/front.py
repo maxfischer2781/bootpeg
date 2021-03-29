@@ -77,7 +77,7 @@ class Range(Terminal[D]):
     maybe_zero = False
 
     def __init__(self, first: D, last: D):
-        assert len(first) == len(last) > 0
+        assert len(first) == len(last) > 0, "Range bounds must be of same length"
         self.first = first
         self.last = last
         self._length = len(first)

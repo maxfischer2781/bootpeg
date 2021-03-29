@@ -86,8 +86,7 @@ def unparse_rule(clause: Rule, top=True) -> str:
 
 @unparse.register(Range)
 def unparse_range(clause: Range, top=True) -> str:
-    first, last = clause.sub_clauses
-    return f"{unparse(first, top=False)} <= {unparse(last, top=False)}"
+    return f"{clause.first!r} - {clause.last!r}"
 
 
 @unparse.register(Delimited)
