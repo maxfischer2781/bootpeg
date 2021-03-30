@@ -1,7 +1,7 @@
 """
 Pika bottom-up Peg parser extension to transform parsed source
 """
-from typing import TypeVar, Any, Dict, Tuple
+from typing import TypeVar, Any, Dict, Tuple, Mapping
 import re
 
 from .peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str, Reference
@@ -201,13 +201,13 @@ class TransformFailure(Exception):
         self.exc = exc
 
 
-def transform(head: Match, memo: MemoTable, namespace: Dict[str, Any]):
+def transform(head: Match, memo: MemoTable, namespace: Mapping[str, Any]):
     return postorder_transform(head, memo.source, namespace)
 
 
 # TODO: Use trampoline/coroutines for infinite depth
 def postorder_transform(
-    match: Match, source: D, namespace: Dict[str, Any]
+    match: Match, source: D, namespace: Mapping[str, Any]
 ) -> Tuple[Any, Dict[str, Any]]:
     matches, captures = (), {}
     for sub_match in match.sub_matches:

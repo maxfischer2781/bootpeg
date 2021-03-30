@@ -1,3 +1,5 @@
+from typing import Optional
+
 import string
 import time
 import pathlib
@@ -129,7 +131,8 @@ namespace = {
 
 end_line = Reference("end_line")  # Literal("\n")
 
-parser = Parser(
+#: Minimal parser required to bootstrap the actual parser
+min_parser = Parser(
     "top",
     literal=Rule(
         Choice(
@@ -292,8 +295,8 @@ parser = Parser(
         Action(".*"),
     ),
 )
-boot_path = pathlib.Path(__file__).parent / "boot.peg"
-full_path = pathlib.Path(__file__).parent.parent / "peg.peg"
+boot_path = pathlib.Path(__file__).parent / "boot.bpeg"
+full_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
 
 
 def boot(base_parser: Parser, source: str) -> Parser:
@@ -306,7 +309,20 @@ def boot(base_parser: Parser, source: str) -> Parser:
     )
 
 
+_parser_cache: Optional[Parser] = None
+
+
+def bootpeg() -> Parser:
+    """Provide the basic bootpeg Pika parser"""
+    global _parser_cache
+    if _parser_cache is None:
+        with open(boot_path) as boot_peg_stream:
+            _parser_cache = boot(min_parser, boot_peg_stream.read())
+    return _parser_cache
+
+
 if __name__ == "__main__":
+    parser = bootpeg()
     for iteration in range(2):
         with open(boot_path) as boot_peg:
             print("Generation:", iteration)
@@ -318,7 +334,7 @@ if __name__ == "__main__":
     for iteration in range(2, 4):
         with open(full_path) as base_peg:
             print("Generation:", iteration)
-            display(parser)
+            display(min_parser)
             parser = range_parse(
                 base_peg.read(),
                 parser,

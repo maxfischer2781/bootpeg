@@ -36,7 +36,7 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | range | literal | reject | anything | nothing) { .expr }
+    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | range | nothing | literal | reject | anything) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
