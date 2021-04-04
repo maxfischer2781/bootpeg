@@ -1,6 +1,5 @@
 # Full PEG+Actions parser
-spaces:
-    | " "*
+# =======================
 nothing:
     | "''" | '""' { Nothing() }
 anything:
@@ -8,8 +7,6 @@ anything:
 end_line:
     | "
 " {Discard()}
-identifier:
-    | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
 
 literal:
     | ('"' :: '"') | ("'" :: "'") { Literal(.*[1:-1]) }
@@ -17,6 +14,14 @@ range:
     | first=literal spaces "-" spaces last=literal { Range(.first.value, .last.value) }
 delimited:
     | start=expr spaces "::" spaces stop=expr { Delimited(.start, .stop) }
+
+terminal:
+    | term=(range | nothing | literal | reject | anything) { .term }
+
+spaces:
+    | " "*
+identifier:
+    | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
 
 optional:
     | "[" spaces expr=expr spaces "]" { either(.expr, Nothing()) }
@@ -36,7 +41,7 @@ reference:
 reject:
     | "!" spaces expr=expr { Not(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | range | nothing | literal | reject | anything) { .expr }
+    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | terminal) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
