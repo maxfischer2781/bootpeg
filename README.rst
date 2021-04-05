@@ -1,6 +1,10 @@
-######################################
-`bootpeg` – a bootstrapping PEG parser
-######################################
+########################################
+`bootpeg` – the bootstrapping PEG parser
+########################################
+
+.. image:: https://readthedocs.org/projects/bootpeg/badge/?version=latest
+    :target: https://bootpeg.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/v/bootpeg.svg
     :alt: Available on PyPI
@@ -29,7 +33,7 @@ By default, it supports a modified EBNF with actions akin to `PEP 617`_.
     $ python3 -m bootpeg.pika.boot
 
 Unlike most other Python PEG parsers which are top-down Packrat parsers,
-``bootpeg`` provides a bottom-up `Pika parser`_:
+`bootpeg` provides a bottom-up `Pika parser`_:
 it handles left-recursive grammars natively,
 allows recovering partial parse results,
 and runs in linear time for usual inputs.
@@ -54,6 +58,6 @@ Well, *eventually* it will be; ``bootpeg`` is still a cute little puppy.
 Don't let it lift too heavy.
 So far it is only lifting itself.
 
-.. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/#e1-e2
+.. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
 .. _`pyparsing`: https://pyparsing-docs.readthedocs.io/
 .. _`Pika parser`: https://arxiv.org/pdf/2005.06444.pdf
