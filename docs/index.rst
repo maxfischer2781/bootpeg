@@ -6,6 +6,14 @@
 `bootpeg` – the bootstrapping PEG parser
 ========================================
 
+.. image:: https://readthedocs.org/projects/bootpeg/badge/?version=latest
+    :target: https://bootpeg.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
+.. image:: https://img.shields.io/pypi/v/bootpeg.svg
+    :alt: Available on PyPI
+    :target: https://pypi.python.org/pypi/bootpeg/
+
 .. toctree::
    :maxdepth: 1
    :hidden:
