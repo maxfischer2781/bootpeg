@@ -20,6 +20,7 @@ from ..pika.peg import (
 from ..pika.act import Capture, Rule, transform
 from ..pika.front import Range, Delimited
 from ..pika.boot import namespace, bootpeg, boot
+from ..api import Actions, parse as generic_parse
 
 
 @singledispatch
@@ -95,15 +96,8 @@ def unparse_delimited(clause: Delimited, top=True) -> str:
     return f"{unparse(first, top=False)} :: {unparse(last, top=False)}"
 
 
-class Actions(NamedTuple):
-    #: names available for translation actions
-    names: Mapping[str, Callable]
-    #: postprocessing callable
-    post: Callable[..., Any]
-
-
 #: :py:class:`~.Actions` needed to construct a Pika parser
-PikaActions = Actions(
+PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
     names=namespace,
     post=lambda *args, **kwargs: Parser(
         "top",
@@ -126,7 +120,4 @@ def _get_parser() -> Parser:
 
 
 def parse(source, actions: Actions = PikaActions):
-    head, memo = _get_parser().parse(source)
-    assert head.length == len(source)
-    args, kwargs = transform(head, memo, actions.names)
-    return actions.post(*args, **kwargs)
+    return generic_parse(source, _get_parser(), actions)
