@@ -1,7 +1,7 @@
 """
 The default bootpeg grammar
 """
-from typing import Union, NamedTuple, Mapping, Callable, Optional, Any
+from typing import Union, Optional
 from functools import singledispatch
 from pathlib import Path
 
@@ -17,10 +17,10 @@ from ..pika.peg import (
     Reference,
     Parser,
 )
-from ..pika.act import Capture, Rule, transform
+from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
-from ..pika.boot import namespace, bootpeg, boot
-from ..api import Actions, parse as generic_parse
+from ..pika.boot import bootpeg, boot
+from ..api import Actions, PikaActions, parse as generic_parse
 
 
 @singledispatch
@@ -95,15 +95,6 @@ def unparse_delimited(clause: Delimited, top=True) -> str:
     first, last = clause.sub_clauses
     return f"{unparse(first, top=False)} :: {unparse(last, top=False)}"
 
-
-#: :py:class:`~.Actions` needed to construct a Pika parser
-PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
-    names=namespace,
-    post=lambda *args, **kwargs: Parser(
-        "top",
-        **{name: clause for name, clause in args[0]},
-    ),
-)
 
 _parser_cache: Optional[Parser] = None
 grammar_path = Path(__file__).parent / "bpeg.bpeg"
