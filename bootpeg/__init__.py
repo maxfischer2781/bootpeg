@@ -3,4 +3,4 @@ from .api import Actions, parse
 
 __all__ = ["Actions", "parse"]
 
-__version__ = "0.0.2"
+__version__ = "0.5.0"
