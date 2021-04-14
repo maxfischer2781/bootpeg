@@ -33,7 +33,7 @@ class Actions(Generic[D, T, R]):
 
 
 #: :py:class:`~.Actions` to construct a Pika parser
-PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
+PikaActions: Actions[str, Clause[str], Parser] = Actions(
     names=pika_namespace,
     post=lambda *args, **kwargs: Parser(
         "top",
