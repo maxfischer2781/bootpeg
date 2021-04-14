@@ -316,8 +316,7 @@ def bootpeg() -> Parser:
     """Provide the basic bootpeg Pika parser"""
     global _parser_cache
     if _parser_cache is None:
-        with open(boot_path) as boot_peg_stream:
-            _parser_cache = boot(min_parser, boot_peg_stream.read())
+        _parser_cache = boot(min_parser, boot_path.read_text())
     return _parser_cache
 
 
