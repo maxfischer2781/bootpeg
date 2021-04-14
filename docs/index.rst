@@ -16,6 +16,14 @@
 
 .. toctree::
    :maxdepth: 1
+   :caption: Usage
+   :hidden:
+
+   source/parse_actions
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Builtin Grammars
    :hidden:
 
    source/bpeg
