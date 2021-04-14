@@ -45,7 +45,7 @@ expr:
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
-    | "|" spaces expr=expr { Rule(.expr, Action("Discard()")) }
+    | "|" spaces expr=expr { Rule(.expr, Action(".*[0]")) }
 
 comment:
     | "#" ((!end_line) .)+ end_line { Discard() }
