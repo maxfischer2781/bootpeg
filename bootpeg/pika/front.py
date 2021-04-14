@@ -7,6 +7,7 @@ from .peg import (
     Nothing,
     Anything,
     Not,
+    And,
     Repeat,
     Reference,
     Parser,

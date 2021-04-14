@@ -16,7 +16,7 @@ delimited:
     | start=expr spaces "::" spaces stop=expr { Delimited(.start, .stop) }
 
 terminal:
-    | term=(range | nothing | literal | reject | anything) { .term }
+    | term=(range | nothing | literal | anything) { .term }
 
 spaces:
     | " "*
@@ -40,8 +40,10 @@ reference:
     | name=identifier { Reference(.name) }
 reject:
     | "!" spaces expr=expr { Not(.expr) }
+require:
+    | "&" spaces expr=expr { And(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | terminal) { .expr }
+    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | reject | require | terminal) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
