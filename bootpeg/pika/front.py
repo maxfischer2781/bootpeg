@@ -30,7 +30,7 @@ __all__ = [
     "Nothing",
     "Anything",
     "Not",
-    "All",
+    "And",
     "Repeat",
     "Reference",
     "Parser",
