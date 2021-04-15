@@ -32,12 +32,17 @@ By default, it supports a modified EBNF with actions akin to `PEP 617`_.
     # memoizing bottom-up PEG parser
     $ python3 -m bootpeg.pika.boot
 
-Unlike most other Python PEG parsers which are top-down Packrat parsers,
+Unlike most other Python PEG parsers which are top-down parsers,
 `bootpeg` provides a bottom-up `Pika parser`_:
 it handles left-recursive grammars natively,
 allows recovering partial parse results,
-and runs in linear time for usual inputs.
-This makes it straightforward to define custom grammars without
+and is guaranteed to run in linear time.
+Like any PEG parser, `bootpeg` automatically
+creates unambiguous grammars,
+supports infinite lookahead,
+and allows to express grammars comfortably.
+
+This makes it straightforward to implement your own custom grammars without
 worrying about their implementation.
 
 Do I need a bigger boot?
