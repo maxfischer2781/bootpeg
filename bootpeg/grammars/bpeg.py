@@ -14,6 +14,7 @@ from ..pika.peg import (
     Choice,
     Repeat,
     Not,
+    And,
     Reference,
     Parser,
 )
@@ -68,6 +69,11 @@ def unparse_repeat(clause: Repeat, top=True) -> str:
 @unparse.register(Not)
 def unparse_not(clause: Not, top=True) -> str:
     return "!" + unparse(clause.sub_clauses[0], top=False)
+
+
+@unparse.register(And)
+def unparse_and(clause: And, top=True) -> str:
+    return "&" + unparse(clause.sub_clauses[0], top=False)
 
 
 @unparse.register(Reference)

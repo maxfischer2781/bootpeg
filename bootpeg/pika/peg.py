@@ -444,6 +444,52 @@ class Not(Clause[D]):
         return f"!{nested_str(self._sub_clause)}"
 
 
+class And(Clause[D]):
+    """
+    The lookahead of a clause, matching if the sub_clause matches but not consuming it
+    """
+
+    __slots__ = ("_sub_clause", "_hash")
+
+    @property
+    def maybe_zero(self):
+        assert not self._sub_clause.maybe_zero, "lookahead of zero match"
+        return False
+
+    @property
+    def sub_clauses(self) -> Tuple[Clause[D]]:
+        return (self._sub_clause,)
+
+    @sub_clauses.setter
+    def sub_clauses(self, values: Tuple[Clause[D]]):
+        (self._sub_clause,) = values
+
+    def __init__(self, sub_clause: Clause[D]):
+        self._sub_clause = sub_clause
+        self._hash = None
+
+    def match(self, source: D, at: int, memo: MemoTable):
+        try:
+            sub_match = memo[MemoKey(at, self._sub_clause)]
+        except KeyError:
+            return None
+        else:
+            return Match(0, (sub_match,), at, self)
+
+    def __eq__(self, other):
+        return isinstance(other, And) and self._sub_clause == other._sub_clause
+
+    @cache_hash
+    def __hash__(self):
+        return hash(self._sub_clause)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._sub_clause!r})"
+
+    def __str__(self):
+        return f"&{nested_str(self._sub_clause)}"
+
+
 # Grammar Definitions
 # TODO: Add Actions/Rules/Transforms
 class UnboundReference(LookupError):

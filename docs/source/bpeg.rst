@@ -56,6 +56,13 @@ not: ``!e``
 
         ! NEW_LINE
 
+not: ``&e``
+
+    Match if ``e`` does match, but with zero width.
+    This is an optimised form of ``!!e``.
+
+        begin (& ':') colon_block
+
 repeat: ``e+``
 
     Match ``e`` once or several times.
