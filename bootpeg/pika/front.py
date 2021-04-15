@@ -133,7 +133,7 @@ class Delimited(Clause[D]):
         head = memo[MemoKey(at, start)]
         for offset in range(head.length, len(source) - at):
             try:
-                tail = memo[MemoKey(at + offset, start)]
+                tail = memo[MemoKey(at + offset, stop)]
             except KeyError:
                 pass
             else:
