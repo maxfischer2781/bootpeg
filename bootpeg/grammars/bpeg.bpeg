@@ -50,7 +50,7 @@ rule:
     | "|" spaces expr=expr { Rule(.expr, Action(".*[0]")) }
 
 comment:
-    | "#" ((!end_line) .)+ end_line { Discard() }
+    | "#" :: end_line { Discard() }
 blank:
     | spaces end_line { Discard() }
 define:
