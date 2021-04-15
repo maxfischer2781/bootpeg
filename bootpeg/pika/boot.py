@@ -303,7 +303,7 @@ full_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
 
 def boot(base_parser: Parser, source: str) -> Parser:
     head, memo = base_parser.parse(source)
-    assert head.length == len(source)
+    assert head.length == len(source), f"parsed {head.length} < {len(source)}"
     results, _ = transform(head, memo, namespace)
     return Parser(
         "top",
