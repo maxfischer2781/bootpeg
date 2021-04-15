@@ -46,7 +46,7 @@ expr:
     | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | reject | require | terminal) { .expr }
 
 rule:
-    | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
+    | "|" spaces expr=expr spaces action=("{" :: "}") { Rule(.expr, Action(.action[1:-1])) }
     | "|" spaces expr=expr { Rule(.expr, Action(".*[0]")) }
 
 comment:
