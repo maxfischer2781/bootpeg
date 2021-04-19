@@ -2,7 +2,7 @@ import sys
 
 from bootpeg.grammars import peg
 
-sys.setrecursionlimit(sys.getrecursionlimit() * 500)
+sys.setrecursionlimit(30000)
 
 peg_grammar = r"""
 # Hierarchical syntax
