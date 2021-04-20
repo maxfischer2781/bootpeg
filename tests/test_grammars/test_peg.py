@@ -52,4 +52,12 @@ EndOfFile <- !.
 
 
 def test_parse_reference():
+    """Parse the PEG reference grammar"""
     assert peg.parse(peg_grammar)
+
+
+def test_parse_short():
+    """Parse a single-line grammar"""
+    assert peg.parse(
+        """top <- ab ab <- a / b a <- "a" ab? b <- "b" ab?"""
+    )
