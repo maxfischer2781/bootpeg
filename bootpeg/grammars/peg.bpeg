@@ -69,11 +69,11 @@ rule:
     | expr=expression spacing action=("{" :: "}") { Rule(.expr, Action(.action[1:-1])) }
     | expr=expression { Rule(.expr, Action(".*[0]")) }
 rules:
-    | try=rule spacing else=rules { either(.try, .else) }
+    | try=rule spacing "/" spacing else=rules { either(.try, .else) }
     | rule=rule { .rule }
 
 definition:
-    | name=identifier spacing ('<-' | '←') spacing rules=rules { (.name, .rules) }
+    | name=identifier spacing ('<-' | '←') spacing ["/" spacing] rules=rules { (.name, .rules) }
 
 top:
     | (spacing definition)+ spacing { .* }
