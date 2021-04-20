@@ -11,7 +11,7 @@ anything:
 literal:
     | ('"' :: '"') | ("'" :: "'") { Literal(.*[1:-1]) }
 class:
-    | "["
+    | "[" expr=range "]" { .expr }
 range:
     | head=range tail=range { either(.head, .tail) }
     | first=char "-" last=char { Range(.first, .last) }
@@ -23,12 +23,12 @@ char:
     | "\" ("0" - "7") ["0" - "7"] { unescape(.*) }
     | "\u" hexdigit hexdigit hexdigit hexdigit { unescape(.*) }
     | "\U" hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit { unescape(.*) }
-    | (! "\") . { .* }
+    | (! "\") (! "[") (! "]") . { .* }
 hexdigit:
-    | ("0" - "9") | ("a" - "z") | ("A" - "Z") { Discard() }
+    | ("0" - "9") | ("a" - "f") | ("A" - "F") { Discard() }
 
 terminal:
-    | term=(range | nothing | literal | anything) { .term }
+    | term=(class | nothing | literal | anything) { .term }
 
 # separators
 end_line:
