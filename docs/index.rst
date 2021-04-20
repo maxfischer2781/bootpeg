@@ -27,6 +27,7 @@
    :hidden:
 
    source/bpeg
+   source/grammar_peg
    source/terminals
 
 `bootpeg` is a PEG parser for creating parsers – including itself.
