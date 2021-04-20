@@ -45,6 +45,6 @@ PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
 def parse(source: D, parser: Parser[D], actions: Actions[D, T, R]) -> T:
     """Parse a ``source`` with a given ``parser`` and ``actions``"""
     head, memo = parser.parse(source)
-    assert head.length == len(source)
+    assert head.length == len(source), f"matched {head.length} of {len(source)}"
     args, kwargs = transform(head, memo, actions.names)
     return actions.post(*args, **kwargs)
