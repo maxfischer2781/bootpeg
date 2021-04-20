@@ -60,7 +60,7 @@ suffixed:
     | expr=primary { .expr }
 # exclude "<-" to avoid matching a <- b c <- d as a <- (b c)
 primary:
-    | name=identifier ! "<-" { Reference(.name) }
+    | name=identifier !(spacing ('<-' | '←')) { Reference(.name) }
     | '(' spacing expr=expression spacing ')' { .expr }
     | term=terminal { .term }
 
