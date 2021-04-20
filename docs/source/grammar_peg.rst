@@ -27,6 +27,11 @@ define: ``name <- ["/"] rule ("/" rule)*``
         # any sequence of a's and b's
         ab <- a / b a <- "a" ab? b <- "b" ab?
 
+rule: ``e spacing [ '{' action '}' ] spacing``
+
+    A rule to match any input matching the expression ``e``.
+    The optional ``action`` defines how to translate the matched input.
+
 Compound Expressions
 --------------------
 
@@ -82,6 +87,9 @@ any: ``e*``
 
     Match ``e`` zero or several times.
 
+capture: ``name=e``
+
+    Capture the result of matching ``e`` with a given ``name`` for use in a rule action.
 
 Special Terminals
 -----------------

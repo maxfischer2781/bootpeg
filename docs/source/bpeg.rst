@@ -73,6 +73,10 @@ any: ``e*``
 
     Match ``e`` zero or several times. Equivalent to ``[ e+ ]``.
 
+capture: ``name=e``
+
+    Capture the result of matching ``e`` with a given ``name`` for use in a rule action.
+
 Special Terminals
 -----------------
 
