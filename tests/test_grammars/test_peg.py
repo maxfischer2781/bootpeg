@@ -1,6 +1,56 @@
 import sys
 
+import pytest
+
 from bootpeg.grammars import peg
+from bootpeg.pika.front import (
+    Rule,
+    Literal,
+    Nothing,
+    Anything,
+    Sequence,
+    Choice,
+    Repeat,
+    Not,
+    And,
+    Reference,
+    Range,
+    Delimited,
+)
+
+
+roundtrip_clauses = [
+    Nothing(),
+    Anything(1),
+    *(Literal(literal) for literal in ("A", "x", "ß", " ")),
+    Sequence(Literal("A"), Literal("B"), Literal("A")),
+    Sequence(Literal(" "), Literal(" ")),
+    Choice(Literal("a"), Literal("b"), Nothing()),
+    Repeat(Literal("x")),
+    Repeat(Sequence(Literal("x"), Literal("y"), Literal("z"))),
+    Not(Literal("a")),
+    And(Literal("a")),
+    Reference("some_rule"),
+    Range("a", "b"),
+]
+
+
+@pytest.mark.parametrize("clause", roundtrip_clauses)
+def test_roundtrip(clause):
+    clause = clause
+    literal = peg.unparse(clause)
+    assert literal
+    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
+    assert parsed_rule.sub_clauses[0] == clause
+
+
+emulated_clauses = [
+    (
+        Delimited(Literal("'"), Literal("'")),
+        Sequence(Literal("'"), Repeat(Not(Anything(1))), Literal("'")),
+    ),
+]
+
 
 sys.setrecursionlimit(30000)
 
