@@ -2,7 +2,7 @@ The ``bpeg`` Grammar
 ====================
 
 The ``bpeg`` grammar is modelled after Python's own parser grammar as per `PEP 617`_.
-It provides indentation based rules, a PEG-like expression grammar,
+It provides indentation based rules, a EBNF-like expression grammar,
 and efficient literal declarations.
 
 See :ref:`terminals` for defining special and literal terminals.
@@ -56,7 +56,7 @@ not: ``!e``
 
         ! NEW_LINE
 
-not: ``&e``
+and: ``&e``
 
     Match if ``e`` does match, but with zero width.
     This is an optimised form of ``!!e``.
