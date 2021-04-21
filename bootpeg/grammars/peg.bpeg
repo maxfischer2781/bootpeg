@@ -9,7 +9,7 @@ anything:
     | "." { Anything() }
 
 literal:
-    | ('"' :: '"') | ("'" :: "'") { Literal(.*[1:-1]) }
+    | ('"' :: '"') | ("'" :: "'") { Literal(unescape(.*[1:-1])) }
 class:
     | "[" expr=range "]" { .expr }
 range:
