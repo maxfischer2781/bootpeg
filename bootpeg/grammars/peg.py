@@ -99,8 +99,8 @@ def unparse_range(clause: Range, top=True) -> str:
 
 @unparse.register(Delimited)
 def unparse_delimited(clause: Delimited, top=True) -> str:
-    first, last = clause.sub_clauses
-    children = f"{unparse(first, top=False)} !. {unparse(last, top=False)}"
+    first, last = (unparse(c, top=False) for c in clause.sub_clauses)
+    children = f"{first} (!{last} .)* {last}"
     return f"({children})" if not top else children
 
 

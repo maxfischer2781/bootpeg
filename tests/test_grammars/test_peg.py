@@ -46,8 +46,12 @@ def test_roundtrip(clause):
 
 emulated_clauses = [
     (
-        Delimited(Literal("'"), Literal("'")),
-        Sequence(Literal("'"), Repeat(Not(Anything(1))), Literal("'")),
+        Delimited(Literal("A"), Literal("B")),
+        Sequence(
+            Literal("A"),
+            Choice(Repeat(Sequence(Not(Literal("B")), Anything(1))), Nothing()),
+            Literal("B"),
+        ),
     ),
 ]
 
