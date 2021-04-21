@@ -5,8 +5,6 @@ The ``bpeg`` grammar is modelled after Python's own parser grammar as per `PEP 6
 It provides indentation based rules, a EBNF-like expression grammar,
 and efficient literal declarations.
 
-See :ref:`terminals` for defining special and literal terminals.
-
 Top-level rules
 ---------------
 
@@ -30,6 +28,7 @@ Compound Expressions
 sequence: ``e1 e2``
 
     Ordered sequence of clauses, matching ``e1`` followed by ``e2``.
+    ::
 
         "return" expression
 
@@ -41,18 +40,21 @@ choice: ``e1 | e2``
 group: ``( e )``
 
     Match ``e``. Useful to enforce precedence.
+    ::
 
         expr (',' expr)*
 
 option: ``[ e ]``
 
     Match ``e`` or nothing. Always succeeds, may be zero width.
+    ::
 
         [ "async" ] "def"
 
 not: ``!e``
 
     Match if ``e`` does not match. Matches with zero width.
+    ::
 
         ! NEW_LINE
 
@@ -60,12 +62,14 @@ and: ``&e``
 
     Match if ``e`` does match, but with zero width.
     This is an optimised form of ``!!e``.
+    ::
 
         begin (& ':') colon_block
 
 repeat: ``e+``
 
     Match ``e`` once or several times.
+    ::
 
         ':' statement+
 
@@ -98,12 +102,14 @@ Literal Terminals
 literal: ``" :: "`` or ``' :: '``
 
     Match any input exactly equal to the literal.
+    ::
 
         "def"
 
 range: ``literal1 - literal2``
 
     Match any input smaller/larger or equal to `literal1`/`literal2`.
+    ::
 
         "a" - "z"
 
@@ -111,6 +117,7 @@ delimited: ``literal1 :: literal2``
 
     Match `literal1` followed by the `literal2` with arbitrary matches in between.
     More efficient version of ``literal1 ( !literal2 . ) literal2``.
+    ::
 
         literal:
             | '"' :: '"'

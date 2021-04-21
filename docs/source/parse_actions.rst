@@ -10,11 +10,11 @@ which is realised in two separate stages:
 * the *Actions* transform the matched clauses to runtime objects.
 
 For example, translating the input string ``"1/2"`` to the object ``Fraction(1, 2)``
-requires a parser clause to match the input and an action to transform it:
+requires a parser clause to match the input and an action to transform it::
 
     fraction:
-        | num=integer spaces '/' spaces denom=integer { Fraction(.num, .denom) }
-    #     ^- -- -- -- Parser match clause -- -- -- -^  ^-- transform Action --^
+        | num=integer '/' denom=integer { Fraction(.num, .denom) }
+    #     ^- - Parser match clause - -^  ^-- transform Action --^
 
 `bootpeg` handles both separately:
 The Parser can be automatically created from the grammar using `bootpeg` itself,

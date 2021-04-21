@@ -23,10 +23,10 @@
 
 .. toctree::
    :maxdepth: 1
-   :caption: Builtin Grammars
+   :caption: Builtin Meta Grammars
    :hidden:
 
-   source/bpeg
+   source/grammar_bpeg
    source/grammar_peg
 
 `bootpeg` is a PEG parser for creating parsers – including itself.
