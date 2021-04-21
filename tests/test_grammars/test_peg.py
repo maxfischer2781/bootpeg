@@ -52,6 +52,15 @@ emulated_clauses = [
 ]
 
 
+@pytest.mark.parametrize("clause, emulation", emulated_clauses)
+def test_roundtrip_emulate(clause, emulation):
+    clause = clause
+    literal = peg.unparse(clause)
+    assert literal
+    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
+    assert parsed_rule.sub_clauses[0] == emulation
+
+
 sys.setrecursionlimit(30000)
 
 peg_grammar = r"""
