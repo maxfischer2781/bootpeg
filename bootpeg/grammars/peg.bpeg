@@ -1,0 +1,79 @@
+# Canonical PEG (+Actions) parser
+# Adapted from "Parsing Expression Grammars: A Recognition-Based Syntactic Foundation"
+#               by Bryan Ford
+# ===============================
+# terminals
+nothing:
+    | "''" | '""' { Nothing() }
+anything:
+    | "." { Anything() }
+
+literal:
+    | ('"' :: '"') | ("'" :: "'") { Literal(unescape(.*[1:-1])) }
+class:
+    | "[" expr=range "]" { .expr }
+range:
+    | head=range tail=range { either(.head, .tail) }
+    | first=char "-" last=char { Range(.first, .last) }
+    | char=char { Literal(.char) }
+char:
+    | ( "\'" | '\"' | "\[" | "\]" | "\\" ) { .*[1] }
+    | ( "\n" | "\r" | "\t" ) { unescape(.*) }
+    | "\" ("0" - "2") ("0" - "7") ("0" - "7") { unescape(.*) }
+    | "\" ("0" - "7") ["0" - "7"] { unescape(.*) }
+    | "\u" hexdigit hexdigit hexdigit hexdigit { unescape(.*) }
+    | "\U" hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit { unescape(.*) }
+    | (! "\") (! "[") (! "]") . { .* }
+hexdigit:
+    | ("0" - "9") | ("a" - "f") | ("A" - "F") { Discard() }
+
+terminal:
+    | term=(class | nothing | literal | anything) { .term }
+
+# separators
+end_line:
+    | "
+"
+comment:
+    | "#" :: end_line
+spacing:
+    | (" " | "	" | end_line | comment)* { Discard() }
+
+identifier:
+    | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
+
+# match clauses
+expression:
+    | try=sequence spacing "/" spacing else=expression { either(.try, .else) }
+    | expr=sequence spacing { .expr }
+sequence:
+    | head=prefixed spacing tail=sequence { chain(.head, .tail) }
+    | expr=prefixed { .expr }
+prefixed:
+    | "&" expr=suffixed { And(.expr) }
+    | "!" expr=suffixed { Not(.expr) }
+    | expr=suffixed { .expr }
+suffixed:
+    | expr=primary "?" { either(.expr, Nothing()) }
+    | expr=primary "*" { either(Repeat(.expr), Nothing()) }
+    | expr=primary "+" { Repeat(.expr) }
+    | expr=primary { .expr }
+# exclude "<-" to avoid matching a <- b c <- d as a <- (b c)
+primary:
+    | name=identifier !(spacing ('<-' | '←')) { Reference(.name) }
+    | '(' spacing expr=expression spacing ')' { .expr }
+    | term=terminal { .term }
+
+# definitions
+rule:
+    | expr=expression spacing action=("{" :: "}") { Rule(.expr, Action(.action[1:-1])) }
+    | expr=expression { Rule(.expr, Action(".*[0]")) }
+rules:
+    | try=rule spacing "/" spacing else=rules { either(.try, .else) }
+    | rule=rule { .rule }
+
+definition:
+    | name=identifier spacing ('<-' | '←') spacing ["/" spacing] rules=rules { (.name, .rules) }
+
+top:
+    | (spacing definition)+ spacing { .* }

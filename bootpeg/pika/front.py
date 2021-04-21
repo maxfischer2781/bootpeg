@@ -46,6 +46,7 @@ __all__ = [
     "either",
     "Range",
     "Delimited",
+    "unescape",
 ]
 
 
@@ -153,3 +154,9 @@ class Delimited(Clause[D]):
 
     def __str__(self):
         return " :: ".join(map(nested_str, self.sub_clauses))
+
+
+def unescape(literal: str) -> str:
+    """Evaluate Python escape sequences in a string, e.g. ``r"\n"`` to ``"\n"``"""
+    # see https://stackoverflow.com/a/57192592/5349916
+    return literal.encode("latin-1", "backslashreplace").decode("unicode-escape")

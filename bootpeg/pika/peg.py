@@ -47,6 +47,15 @@ class Match(NamedTuple):
         ), f"{self.position}=={other.position} and {self.clause}=={other.clause}"
         return self.priority < other.priority or self.length > other.length
 
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(length={self.length}, "
+            f"sub_matches=<{len(self.sub_matches)}>, "
+            f"position={self.position}, "
+            f"clause={self.clause!r}, "
+            f"priority={self.priority})"
+        )
+
 
 class MemoTable(Generic[D]):
     __slots__ = ("matches", "source")

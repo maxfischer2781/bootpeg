@@ -27,7 +27,7 @@
    :hidden:
 
    source/bpeg
-   source/terminals
+   source/grammar_peg
 
 `bootpeg` is a PEG parser for creating parsers – including itself.
 By default, it supports a modified EBNF with actions akin to `PEP 617`_.

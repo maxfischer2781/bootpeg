@@ -27,6 +27,7 @@ from .front import (
     either,
     Range,
     Delimited,
+    unescape,
 )
 
 
@@ -127,6 +128,7 @@ namespace = {
         Discard,
         Range,
         Delimited,
+        unescape,
     )
 }
 

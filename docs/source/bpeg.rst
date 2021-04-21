@@ -2,7 +2,7 @@ The ``bpeg`` Grammar
 ====================
 
 The ``bpeg`` grammar is modelled after Python's own parser grammar as per `PEP 617`_.
-It provides indentation based rules, a PEG-like expression grammar,
+It provides indentation based rules, a EBNF-like expression grammar,
 and efficient literal declarations.
 
 See :ref:`terminals` for defining special and literal terminals.
@@ -56,7 +56,7 @@ not: ``!e``
 
         ! NEW_LINE
 
-not: ``&e``
+and: ``&e``
 
     Match if ``e`` does match, but with zero width.
     This is an optimised form of ``!!e``.
@@ -72,5 +72,49 @@ repeat: ``e+``
 any: ``e*``
 
     Match ``e`` zero or several times. Equivalent to ``[ e+ ]``.
+
+capture: ``name=e``
+
+    Capture the result of matching ``e`` with a given ``name`` for use in a rule action.
+
+Special Terminals
+-----------------
+
+nothing: ``''`` or ``""``
+
+    Zero-length literal, always matches at any position.
+    Used to construct `optional` and `any` rules,
+    which should be preferred for readability.
+
+anything: ``.``
+
+    Match any input of width one.
+    May lead to excessive matches;
+    prefer `range` or `delimited` literals.
+
+Literal Terminals
+-----------------
+
+literal: ``" :: "`` or ``' :: '``
+
+    Match any input exactly equal to the literal.
+
+        "def"
+
+range: ``literal1 - literal2``
+
+    Match any input smaller/larger or equal to `literal1`/`literal2`.
+
+        "a" - "z"
+
+delimited: ``literal1 :: literal2``
+
+    Match `literal1` followed by the `literal2` with arbitrary matches in between.
+    More efficient version of ``literal1 ( !literal2 . ) literal2``.
+
+        literal:
+            | '"' :: '"'
+            | "'" :: "'"
+
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
