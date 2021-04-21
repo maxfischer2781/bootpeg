@@ -63,16 +63,18 @@ def test_roundtrip_emulate(clause, emulation):
 
 sys.setrecursionlimit(30000)
 
+# Adapted from PEG paper
+# Some fixes due to errors in the original grammar
 peg_grammar = r"""
 # Hierarchical syntax
-Grammar    <- Spacing Definition+ EndOfFile
-Definition <- Identifier LEFTARROW Expression
+Grammar    <- (Spacing Definition)+ # EndOfFile
+Definition <- Identifier LEFTARROW Expression Spacing
 
 Expression <- Sequence (SLASH Sequence)*
-Sequence   <- Prefix*
+Sequence   <- (Prefix Spacing)+
 Prefix     <- (AND / NOT)? Suffix
 Suffix     <- Primary (QUESTION / STAR / PLUS)?
-Primary    <- Identifier !LEFTARROW
+Primary    <- Identifier !(LEFTARROW)
             / OPEN Expression CLOSE
             / Literal / Class / DOT
 
@@ -90,16 +92,16 @@ Char       <- '\\' [nrt'"\[\]\\]
             / !'\\' .
 
 # Symbols
-LEFTARROW <- '<-' Spacing
-SLASH     <- '/' Spacing
-AND       <- '&' Spacing
-NOT       <- '!' Spacing
-QUESTION  <- '?' Spacing
-STAR      <- '*' Spacing
-PLUS      <- '+' Spacing
-OPEN      <- '(' Spacing
-CLOSE     <- ')' Spacing
-DOT       <- '.' Spacing
+LEFTARROW <- Spacing '<-' Spacing
+SLASH     <- Spacing '/' Spacing
+AND       <- Spacing '&' Spacing
+NOT       <- Spacing '!' Spacing
+QUESTION  <- Spacing '?' Spacing
+STAR      <- Spacing '*' Spacing
+PLUS      <- Spacing '+' Spacing
+OPEN      <- Spacing '(' Spacing
+CLOSE     <- Spacing ')' Spacing
+DOT       <- Spacing '.' Spacing
 
 # Separators
 Spacing   <- (Space / Comment)*
@@ -112,7 +114,9 @@ EndOfFile <- !.
 
 def test_parse_reference():
     """Parse the PEG reference grammar"""
-    assert peg.parse(peg_grammar)
+    parser = peg.parse(peg_grammar)
+    parser.top = "Grammar"
+    assert parser.parse(peg_grammar)
 
 
 def test_parse_short():
