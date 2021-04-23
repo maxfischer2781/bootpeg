@@ -26,3 +26,6 @@ test = [
     "pytest-cov",
 ]
 doc = ["sphinx"]
+
+[tool.black]
+target-version = ['py36']
