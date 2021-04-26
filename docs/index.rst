@@ -16,7 +16,7 @@
 
 .. toctree::
    :maxdepth: 1
-   :caption: Usage
+   :caption: Usage and Guides
    :hidden:
 
    source/parse_actions
@@ -28,6 +28,13 @@
 
    source/grammar_bpeg
    source/grammar_peg
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Development
+   :hidden:
+
+   contributing
 
 `bootpeg` is a PEG parser for creating parsers – including itself.
 By default, it supports a modified EBNF with actions akin to `PEP 617`_.
