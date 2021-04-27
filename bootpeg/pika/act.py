@@ -192,6 +192,59 @@ class Action:
         return f"{self.__class__.__name__}({self.literal!r})"
 
 
+class Cut(Clause[D]):
+    """
+    The commitment to a clause, requiring a match of the sub_clause
+
+    This clause always matches, even if the sub_clause does not.
+    As a result, it "cuts" away alternatives of *not* matching the sub_clause.
+
+    Since Pika matches spuriously and can accumulate several failures,
+    a ``Cut`` does not raise an error during parsing.
+    Any :py:meth:`~.failed` match should be reported after parsing.
+    """
+
+    __slots__ = ("sub_clauses", "_hash")
+
+    def __init__(self, sub_clause: Clause[D]):
+        self.sub_clauses = (sub_clause,)
+
+    @property
+    def maybe_zero(self):
+        return True
+
+    # The difference between a successful and failed match
+    # is that we do/don't have a parent match.
+    # A match length may be 0 in either case, if the parent
+    # matched 0 length or not at all.
+    def match(self, source: D, at: int, memo: MemoTable):
+        try:
+            parent_match = memo[MemoKey(at, self.sub_clauses[0])]
+        except KeyError:
+            return Match(0, (), at, self)
+        else:
+            return Match(parent_match.length, (parent_match,), at, self)
+
+    @classmethod
+    def failed(cls, match: Match) -> bool:
+        """Check whether the given ``match`` only succeeded due to the ``Cut``."""
+        assert isinstance(match.clause, cls), f"a {cls.__name__} match is required"
+        return not match.sub_matches
+
+    def __eq__(self, other):
+        return isinstance(other, Cut) and self.sub_clauses == other.sub_clauses
+
+    @cache_hash
+    def __hash__(self):
+        return hash(self.sub_clauses)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
+
+    def __str__(self):
+        return f"~{self.sub_clauses[0]}"
+
+
 class TransformFailure(Exception):
     def __init__(self, clause, matches, captures, exc: Exception):
         super().__init__(f"failed to transform {clause}: {exc}")
