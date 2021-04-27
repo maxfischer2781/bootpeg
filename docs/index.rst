@@ -69,4 +69,4 @@ Indices and tables
 
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
-.. _`Pika parser`: https://arxiv.org/pdf/2005.06444.pdf
+.. _`Pika parser`: https://arxiv.org/abs/2005.06444

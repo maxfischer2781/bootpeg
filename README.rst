@@ -65,4 +65,4 @@ So far it is only lifting itself.
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
 .. _`pyparsing`: https://pyparsing-docs.readthedocs.io/
-.. _`Pika parser`: https://arxiv.org/pdf/2005.06444.pdf
+.. _`Pika parser`: https://arxiv.org/abs/2005.06444
