@@ -44,11 +44,13 @@ and allows to express grammars comfortably.
 
 This makes it straightforward to implement your own custom grammars without
 worrying about their implementation.
+To get started using or contributing to `bootpeg`,
+head straight to the `bootpeg documentation`_.
 
 Do I need a bigger boot?
 ------------------------
 
-> Some people, when confronted with a problem, think "I know, I'll use self-writing parsers." Now they have problems+.
+> Some people, when confronted with a problem, think "I know, I'll use self-writing parsers." Now they have recursive problems.
 
 If you need a battle-hardened, production ready parser suite
 then `pyparsing`_ should be your first choice.
@@ -66,3 +68,4 @@ So far it is only lifting itself.
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
 .. _`pyparsing`: https://pyparsing-docs.readthedocs.io/
 .. _`Pika parser`: https://arxiv.org/abs/2005.06444
+.. _`bootpeg documentation`: https://bootpeg.readthedocs.io
