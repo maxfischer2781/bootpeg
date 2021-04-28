@@ -61,7 +61,7 @@ __all__ = [
 ]
 
 
-def chain(left, right) -> Sequence:
+def chain(left: Clause[D], right: Clause[D]) -> Sequence[D]:
     """Chain two clauses efficiently"""
     if isinstance(left, Sequence):
         if isinstance(right, Sequence):
@@ -72,7 +72,7 @@ def chain(left, right) -> Sequence:
     return Sequence(left, right)
 
 
-def either(left, right) -> Choice:
+def either(left: Clause[D], right: Clause[D]) -> Choice[D]:
     """Choose between two clauses efficiently"""
     if isinstance(left, Choice):
         if isinstance(right, Choice):
@@ -81,6 +81,21 @@ def either(left, right) -> Choice:
     if isinstance(right, Choice):
         return Choice(left, *right.sub_clauses)
     return Choice(left, right)
+
+
+def require(target: Clause[D]) -> Clause[D]:
+    """Commit to clauses efficiently"""
+    # TODO: can we handle `maybe_zero` safely here in general?
+    if isinstance(target, Choice) and isinstance(target.sub_clauses[-1], Nothing):
+        return target
+    elif isinstance(target, Commit):
+        return target
+    elif isinstance(target, Sequence):
+        return Sequence(
+            *(require(clause) for clause in target.sub_clauses)
+        )
+    else:
+        return Commit(target)
 
 
 class Range(Terminal[D]):

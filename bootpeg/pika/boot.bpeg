@@ -39,7 +39,7 @@ reject:
 require:
     | "&" spaces expr=expr { And(.expr) }
 commit:
-    | "~" spaces expr=expr { Commit(.expr) }
+    | "~" spaces expr=expr { require(.expr) }
 expr:
     | expr=(choice | commit | sequence | repeat | delimited | capture | reference | group | optional | reject | require | range | literal | anything | nothing) { .expr }
 
