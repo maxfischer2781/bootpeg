@@ -38,8 +38,10 @@ reject:
     | "!" spaces expr=expr { Not(.expr) }
 require:
     | "&" spaces expr=expr { And(.expr) }
+commit:
+    | "~" spaces expr=expr { Commit(.expr) }
 expr:
-    | expr=(choice | sequence | repeat | delimited | capture | reference | group | optional | reject | require | range | literal | anything | nothing) { .expr }
+    | expr=(choice | commit | sequence | repeat | delimited | capture | reference | group | optional | reject | require | range | literal | anything | nothing) { .expr }
 
 rule:
     | "|" spaces expr=expr spaces "{" body=(((!"}") .)+) "}" { Rule(.expr, Action(.body)) }
