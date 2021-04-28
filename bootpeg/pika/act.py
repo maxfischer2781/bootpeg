@@ -255,7 +255,7 @@ class NamedFailure(NamedTuple):
     """Information on all failures of a :py:class:`~.Reference` match"""
 
     name: str
-    failures: Tuple[CommitFailure[D]]
+    failures: Tuple[CommitFailure]
 
 
 class CapturedParseFailure(Exception):
