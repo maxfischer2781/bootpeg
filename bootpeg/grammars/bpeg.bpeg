@@ -39,9 +39,9 @@ capture:
 reference:
     | name=identifier { Reference(.name) }
 reject:
-    | "!" spaces expr=expr { Not(.expr) }
+    | "!" ~ spaces expr=expr { Not(.expr) }
 require:
-    | "&" spaces expr=expr { And(.expr) }
+    | "&" ~ spaces expr=expr { And(.expr) }
 commit:
     | "~" ~ spaces expr=expr { require(.expr) }
 expr:

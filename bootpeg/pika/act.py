@@ -230,7 +230,7 @@ class Commit(Clause[D]):
     def failed(cls, match: Match) -> bool:
         """Check whether the given ``match`` only succeeded due to the ``Cut``."""
         assert isinstance(match.clause, cls), f"a {cls.__name__} match is required"
-        return not match.sub_matches
+        return not match.sub_matches and not match.clause.sub_clauses[0].maybe_zero
 
     def __eq__(self, other):
         return isinstance(other, Commit) and self.sub_clauses == other.sub_clauses
