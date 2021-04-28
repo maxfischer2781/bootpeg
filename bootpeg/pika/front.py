@@ -19,7 +19,16 @@ from .peg import (
     Terminal,
     D,
 )
-from .act import Debug, Capture, Rule, transform, Action, Discard, Commit
+from .act import (
+    Debug,
+    Capture,
+    Rule,
+    transform,
+    Action,
+    Discard,
+    Commit,
+    CapturedParseFailure,
+)
 from ..utility import cache_hash
 
 __all__ = [
@@ -41,6 +50,7 @@ __all__ = [
     "Action",
     "Discard",
     "Commit",
+    "CapturedParseFailure",
     "transform",
     # helpers
     "chain",
