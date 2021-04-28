@@ -27,6 +27,8 @@ class Debug(Clause[D]):
         except KeyError:
             return None
         else:
+            print("match", self.name, "at", at, ":", parent_match.length)
+            print("'", mono(source[at: at + parent_match.length]), "'", sep="")
             return parent_match
 
     def __eq__(self, other):
