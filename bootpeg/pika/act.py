@@ -1,7 +1,7 @@
 """
 Pika bottom-up Peg parser extension to transform parsed source
 """
-from typing import TypeVar, Any, Dict, Tuple, Mapping
+from typing import TypeVar, Any, Dict, Tuple, Mapping, Union, NamedTuple
 import re
 
 from .peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str, Reference
@@ -27,8 +27,6 @@ class Debug(Clause[D]):
         except KeyError:
             return None
         else:
-            print("match", self.name, "at", at, ":", parent_match.length)
-            print("'", mono(source[at : at + parent_match.length]), "'", sep="")
             return parent_match
 
     def __eq__(self, other):
@@ -49,7 +47,7 @@ class Capture(Clause[D]):
 
     __slots__ = ("name", "sub_clauses", "_hash")
 
-    def __init__(self, name, sub_clause: Clause[D]):
+    def __init__(self, name: str, sub_clause: Clause[D]):
         self.name = name
         self.sub_clauses = (sub_clause,)
         self._hash = None
@@ -192,7 +190,7 @@ class Action:
         return f"{self.__class__.__name__}({self.literal!r})"
 
 
-class Cut(Clause[D]):
+class Commit(Clause[D]):
     """
     The commitment to a clause, requiring a match of the sub_clause
 
@@ -208,6 +206,7 @@ class Cut(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self.sub_clauses = (sub_clause,)
+        self._hash = None
 
     @property
     def maybe_zero(self):
@@ -232,7 +231,7 @@ class Cut(Clause[D]):
         return not match.sub_matches
 
     def __eq__(self, other):
-        return isinstance(other, Cut) and self.sub_clauses == other.sub_clauses
+        return isinstance(other, Commit) and self.sub_clauses == other.sub_clauses
 
     @cache_hash
     def __hash__(self):
@@ -245,6 +244,46 @@ class Cut(Clause[D]):
         return f"~{self.sub_clauses[0]}"
 
 
+class CommitFailure(NamedTuple):
+    """Information on a single failed :py:class:`~.Commit` match"""
+
+    position: int
+    commit: Commit
+
+
+class NamedFailure(NamedTuple):
+    """Information on all failures of a :py:class:`~.Reference` match"""
+
+    name: str
+    failures: Tuple[CommitFailure[D]]
+
+
+class CapturedParseFailure(Exception):
+    """Parsing captured match failures"""
+
+    def __init__(self, *failures: Union[NamedFailure, CommitFailure]):
+        self.failures = failures
+        positions = sorted(self.positions)
+        super().__init__(
+            f"failed to parse at positions {', '.join(map(str, positions))}"
+        )
+
+    @property
+    def positions(self):
+        def recur_positions(failure):
+            if hasattr(failure, "position"):
+                yield failure.position
+            if hasattr(failure, "failures"):
+                for child in failure.failures:
+                    yield from recur_positions(child)
+
+        return {
+            position
+            for failure in self.failures
+            for position in recur_positions(failure)
+        }
+
+
 class TransformFailure(Exception):
     def __init__(self, clause, matches, captures, exc: Exception):
         super().__init__(f"failed to transform {clause}: {exc}")
@@ -255,25 +294,48 @@ class TransformFailure(Exception):
 
 
 def transform(head: Match, memo: MemoTable, namespace: Mapping[str, Any]):
-    return postorder_transform(head, memo.source, namespace)
+    matches, captures, failures = postorder_transform(head, memo.source, namespace)
+    if not failures:
+        return matches, captures
+    else:
+        raise CapturedParseFailure(*failures)
 
 
 # TODO: Use trampoline/coroutines for infinite depth
 def postorder_transform(
     match: Match, source: D, namespace: Mapping[str, Any]
-) -> Tuple[Any, Dict[str, Any]]:
-    matches, captures = (), {}
+) -> Tuple[Tuple, Dict[str, Any], Tuple]:
+    matches: Tuple = ()
+    captures: Dict[str, Any] = {}
+    failures: Tuple = ()
     for sub_match in match.sub_matches:
-        sub_matches, sub_captures = postorder_transform(sub_match, source, namespace)
+        sub_matches, sub_captures, sub_failures = postorder_transform(
+            sub_match, source, namespace
+        )
         matches += sub_matches
         captures.update(sub_captures)
+        failures += sub_failures
     position, clause = match.position, match.clause
-    if isinstance(clause, Capture):
+    if isinstance(clause, Commit):
+        if Commit.failed(match):
+            failures = (*failures, CommitFailure(position, clause))
+    elif isinstance(clause, Reference):
+        new_failures = tuple(
+            failure for failure in failures if not isinstance(failure, NamedFailure)
+        )
+        if new_failures:
+            failures = (
+                NamedFailure(clause.target, new_failures),
+                *(failure for failure in failures if isinstance(failure, NamedFailure)),
+            )
+    if failures:
+        return (), {}, failures
+    elif isinstance(clause, Capture):
         assert len(matches) <= 1, "Captured rule must provide no more than one value"
         captures[Action.mangle + clause.name] = (
             matches[0] if matches else source[position : position + match.length]
         )
-        return (), captures
+        return (), captures, failures
     elif isinstance(clause, Rule):
         matches = matches if matches else source[position : position + match.length]
         try:
@@ -282,5 +344,5 @@ def postorder_transform(
             raise
         except Exception as exc:
             raise TransformFailure(clause, matches, captures, exc)
-        return (result,) if not isinstance(result, Discard) else (), {}
-    return matches, captures
+        return (result,) if not isinstance(result, Discard) else (), {}, failures
+    return matches, captures, failures
