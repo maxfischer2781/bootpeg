@@ -89,7 +89,7 @@ commit: ``~ e``
         '(' ~ expr ')' | expr
 
     Binds tighter than sequences and less tight than choices:
-    ``~e1 e2 | e3`` is equivalent to ``(~e1 ~e2) | e3``
+    ``~e1 e2 | e3`` is equivalent to ``(~e1 ~e2) | e3``.
 
 capture: ``name=e``
 
