@@ -77,6 +77,20 @@ any: ``e*``
 
     Match ``e`` zero or several times. Equivalent to ``[ e+ ]``.
 
+commit: ``~ e``
+
+    Match ``e`` or fail. Always succeeds, may be zero width.
+
+    Failure to match ``e`` records the failure but proceeds "as if" ``e`` matched.
+    Useful for accurate failure reports.
+    ::
+
+        # fail on empty and mismatched parentheses
+        '(' ~ expr ')' | expr
+
+    Binds tighter than sequences and less tight than choices:
+    ``~e1 e2 | e3`` is equivalent to ``(~e1 ~e2) | e3``.
+
 capture: ``name=e``
 
     Capture the result of matching ``e`` with a given ``name`` for use in a rule action.

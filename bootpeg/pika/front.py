@@ -19,7 +19,16 @@ from .peg import (
     Terminal,
     D,
 )
-from .act import Debug, Capture, Rule, transform, Action, Discard
+from .act import (
+    Debug,
+    Capture,
+    Rule,
+    transform,
+    Action,
+    Discard,
+    Commit,
+    CapturedParseFailure,
+)
 from ..utility import cache_hash
 
 __all__ = [
@@ -40,6 +49,8 @@ __all__ = [
     "Rule",
     "Action",
     "Discard",
+    "Commit",
+    "CapturedParseFailure",
     "transform",
     # helpers
     "chain",
@@ -50,7 +61,7 @@ __all__ = [
 ]
 
 
-def chain(left, right) -> Sequence:
+def chain(left: Clause[D], right: Clause[D]) -> Sequence[D]:
     """Chain two clauses efficiently"""
     if isinstance(left, Sequence):
         if isinstance(right, Sequence):
@@ -61,7 +72,7 @@ def chain(left, right) -> Sequence:
     return Sequence(left, right)
 
 
-def either(left, right) -> Choice:
+def either(left: Clause[D], right: Clause[D]) -> Choice[D]:
     """Choose between two clauses efficiently"""
     if isinstance(left, Choice):
         if isinstance(right, Choice):
@@ -70,6 +81,19 @@ def either(left, right) -> Choice:
     if isinstance(right, Choice):
         return Choice(left, *right.sub_clauses)
     return Choice(left, right)
+
+
+def require(target: Clause[D]) -> Clause[D]:
+    """Commit to clauses efficiently"""
+    # It is tempting to try and remove `maybe_zero` clauses here.
+    # However, we cannot actually do that: There is no full grammar here, just clauses
+    # – but at least Reference needs the grammar to derive its `maybe_zero`.
+    if isinstance(target, Commit):
+        return target
+    elif isinstance(target, Sequence):
+        return Sequence(*(require(clause) for clause in target.sub_clauses))
+    else:
+        return Commit(target)
 
 
 class Range(Terminal[D]):

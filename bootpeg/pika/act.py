@@ -1,7 +1,7 @@
 """
 Pika bottom-up Peg parser extension to transform parsed source
 """
-from typing import TypeVar, Any, Dict, Tuple, Mapping
+from typing import TypeVar, Any, Dict, Tuple, Mapping, Union, NamedTuple
 import re
 
 from .peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str, Reference
@@ -49,7 +49,7 @@ class Capture(Clause[D]):
 
     __slots__ = ("name", "sub_clauses", "_hash")
 
-    def __init__(self, name, sub_clause: Clause[D]):
+    def __init__(self, name: str, sub_clause: Clause[D]):
         self.name = name
         self.sub_clauses = (sub_clause,)
         self._hash = None
@@ -192,6 +192,105 @@ class Action:
         return f"{self.__class__.__name__}({self.literal!r})"
 
 
+class Commit(Clause[D]):
+    """
+    The commitment to a clause, requiring a match of the sub_clause
+
+    This clause always matches, even if the sub_clause does not.
+    As a result, it "cuts" away alternatives of *not* matching the sub_clause.
+
+    Since Pika matches spuriously and can accumulate several failures,
+    a ``Cut`` does not raise an error during parsing.
+    Any :py:meth:`~.failed` match should be reported after parsing.
+    """
+
+    __slots__ = ("sub_clauses", "_hash")
+
+    def __init__(self, sub_clause: Clause[D]):
+        self.sub_clauses = (sub_clause,)
+        self._hash = None
+
+    @property
+    def maybe_zero(self):
+        return True
+
+    # The difference between a successful and failed match
+    # is that we do/don't have a parent match.
+    # A match length may be 0 in either case, if the parent
+    # matched 0 length or not at all.
+    def match(self, source: D, at: int, memo: MemoTable):
+        # While `Commit` handles cases in which the child is not matched,
+        # Pika never tries to match `Commit` without the child matching.
+        # An "empty" match is created by the memo as needed.
+        parent_match = memo[MemoKey(at, self.sub_clauses[0])]
+        return Match(parent_match.length, (parent_match,), at, self)
+
+    @classmethod
+    def failed(cls, match: Match) -> bool:
+        """Check whether the given ``match`` only succeeded due to the ``Cut``."""
+        assert isinstance(match.clause, cls), f"a {cls.__name__} match is required"
+        return not match.sub_matches and not match.clause.sub_clauses[0].maybe_zero
+
+    def __eq__(self, other):
+        return isinstance(other, Commit) and self.sub_clauses == other.sub_clauses
+
+    @cache_hash
+    def __hash__(self):
+        return hash(self.sub_clauses)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
+
+    def __str__(self):
+        return f"~{self.sub_clauses[0]}"
+
+
+class CommitFailure(NamedTuple):
+    """Information on a single failed :py:class:`~.Commit` match"""
+
+    position: int
+    commit: Commit
+
+
+class NamedFailure(NamedTuple):
+    """Information on all failures of a :py:class:`~.Reference` match"""
+
+    name: str
+    failures: Tuple[CommitFailure]
+
+
+def leaves(failure):
+    if isinstance(failure, CommitFailure):
+        yield failure
+    elif isinstance(failure, NamedFailure):
+        for child in failure.failures:
+            yield from leaves(child)
+    else:
+        raise NotImplementedError
+
+
+class CapturedParseFailure(Exception):
+    """Parsing captured match failures"""
+
+    def __init__(self, *failures: Union[NamedFailure, CommitFailure]):
+        self.failures = failures
+        leave_failures = sorted(
+            {leave for failure in failures for leave in leaves(failure)},
+            key=lambda failure: failure.position,
+        )
+        leave_reports = (
+            f"{str(failure.commit.sub_clauses[0])!r}@{failure.position}"
+            for failure in leave_failures
+        )
+        super().__init__(f'failed expected parse of {", ".join(leave_reports)}')
+
+    @property
+    def positions(self):
+        return {
+            leave.position for failure in self.failures for leave in leaves(failure)
+        }
+
+
 class TransformFailure(Exception):
     def __init__(self, clause, matches, captures, exc: Exception):
         super().__init__(f"failed to transform {clause}: {exc}")
@@ -202,25 +301,48 @@ class TransformFailure(Exception):
 
 
 def transform(head: Match, memo: MemoTable, namespace: Mapping[str, Any]):
-    return postorder_transform(head, memo.source, namespace)
+    matches, captures, failures = postorder_transform(head, memo.source, namespace)
+    if not failures:
+        return matches, captures
+    else:
+        raise CapturedParseFailure(*failures)
 
 
 # TODO: Use trampoline/coroutines for infinite depth
 def postorder_transform(
     match: Match, source: D, namespace: Mapping[str, Any]
-) -> Tuple[Any, Dict[str, Any]]:
-    matches, captures = (), {}
+) -> Tuple[Tuple, Dict[str, Any], Tuple]:
+    matches: Tuple = ()
+    captures: Dict[str, Any] = {}
+    failures: Tuple = ()
     for sub_match in match.sub_matches:
-        sub_matches, sub_captures = postorder_transform(sub_match, source, namespace)
+        sub_matches, sub_captures, sub_failures = postorder_transform(
+            sub_match, source, namespace
+        )
         matches += sub_matches
         captures.update(sub_captures)
+        failures += sub_failures
     position, clause = match.position, match.clause
-    if isinstance(clause, Capture):
+    if isinstance(clause, Commit):
+        if Commit.failed(match):
+            failures = (*failures, CommitFailure(position, clause))
+    elif isinstance(clause, Reference):
+        new_failures = tuple(
+            failure for failure in failures if not isinstance(failure, NamedFailure)
+        )
+        if new_failures:
+            failures = (
+                NamedFailure(clause.target, new_failures),
+                *(failure for failure in failures if isinstance(failure, NamedFailure)),
+            )
+    if failures:
+        return (), {}, failures
+    elif isinstance(clause, Capture):
         assert len(matches) <= 1, "Captured rule must provide no more than one value"
         captures[Action.mangle + clause.name] = (
             matches[0] if matches else source[position : position + match.length]
         )
-        return (), captures
+        return (), captures, failures
     elif isinstance(clause, Rule):
         matches = matches if matches else source[position : position + match.length]
         try:
@@ -229,5 +351,5 @@ def postorder_transform(
             raise
         except Exception as exc:
             raise TransformFailure(clause, matches, captures, exc)
-        return (result,) if not isinstance(result, Discard) else (), {}
-    return matches, captures
+        return (result,) if not isinstance(result, Discard) else (), {}, failures
+    return matches, captures, failures

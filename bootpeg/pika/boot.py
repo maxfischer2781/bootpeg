@@ -22,9 +22,11 @@ from .front import (
     Rule,
     Action,
     Discard,
+    Commit,
     transform,
     chain,
     either,
+    require,
     Range,
     Delimited,
     unescape,
@@ -126,6 +128,8 @@ namespace = {
         Rule,
         Action,
         Discard,
+        Commit,
+        require,
         Range,
         Delimited,
         unescape,
@@ -326,20 +330,21 @@ def bootpeg() -> Parser:
 
 if __name__ == "__main__":
     parser = bootpeg()
+    print("Generation:", -1, "(min)")
+    display(parser)
     for iteration in range(2):
         with open(boot_path) as boot_peg:
-            print("Generation:", iteration)
-            display(parser)
             parser = range_parse(
                 boot_peg.read(),
                 parser,
             )
+            print("Generation:", iteration, "(boot)")
+            display(parser)
     for iteration in range(2, 4):
         with open(full_path) as base_peg:
-            print("Generation:", iteration)
-            display(min_parser)
             parser = range_parse(
                 base_peg.read(),
                 parser,
             )
-    display(parser)
+            print("Generation:", iteration, "(bpeg)")
+            display(parser)

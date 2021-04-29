@@ -14,6 +14,7 @@ from bootpeg.pika.front import (
     Reference,
     Range,
     Delimited,
+    CapturedParseFailure,
 )
 
 
@@ -43,3 +44,16 @@ def test_roundtrip(clause):
         "parse_test"
     ]
     assert parsed_rule.sub_clauses[0] == clause
+
+
+commit_failures = (("top:\n | ~\n", {9}),)
+
+
+@pytest.mark.parametrize("source, positions", commit_failures)
+def test_commit(source, positions):
+    try:
+        bpeg.parse(source)
+    except CapturedParseFailure as cpf:
+        assert cpf.positions == positions
+    else:
+        assert not positions, "Expected parse failures, found none"
