@@ -219,12 +219,11 @@ class Commit(Clause[D]):
     # A match length may be 0 in either case, if the parent
     # matched 0 length or not at all.
     def match(self, source: D, at: int, memo: MemoTable):
-        try:
-            parent_match = memo[MemoKey(at, self.sub_clauses[0])]
-        except KeyError:
-            return Match(0, (), at, self)
-        else:
-            return Match(parent_match.length, (parent_match,), at, self)
+        # While `Commit` handles cases in which the child is not matched,
+        # Pika never tries to match `Commit` without the child matching.
+        # An "empty" match is created by the memo as needed.
+        parent_match = memo[MemoKey(at, self.sub_clauses[0])]
+        return Match(parent_match.length, (parent_match,), at, self)
 
     @classmethod
     def failed(cls, match: Match) -> bool:
