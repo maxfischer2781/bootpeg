@@ -11,9 +11,9 @@ end_line:
 literal:
     | ('"' :: '"') | ("'" :: "'") { Literal(.*[1:-1]) }
 range:
-    | first=literal spaces "-" spaces last=literal { Range(.first.value, .last.value) }
+    | first=literal spaces "-" ~ spaces last=literal { Range(.first.value, .last.value) }
 delimited:
-    | start=expr spaces "::" spaces stop=expr { Delimited(.start, .stop) }
+    | start=expr spaces "::" ~ spaces stop=expr { Delimited(.start, .stop) }
 
 terminal:
     | term=(range | nothing | literal | anything) { .term }
@@ -24,18 +24,18 @@ identifier:
     | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
 
 optional:
-    | "[" spaces expr=expr spaces "]" { either(.expr, Nothing()) }
+    | "[" ~ spaces expr=expr spaces "]" { either(.expr, Nothing()) }
 group:
-    | "(" spaces expr=expr spaces ")" { .expr }
+    | "(" ~ spaces expr=expr spaces ")" { .expr }
 choice:
-    | try=expr spaces "|" spaces else=expr { either(.try, .else) }
+    | try=expr spaces "|" ~ spaces else=expr { either(.try, .else) }
 sequence:
     | head=expr spaces tail=expr { chain(.head, .tail) }
 repeat:
     | expr=expr spaces "+" { Repeat(.expr) }
     | expr=expr spaces "*" { either(Repeat(.expr), Nothing()) }
 capture:
-    | name=identifier spaces "=" spaces expr=(reference | group) { Capture(.name, .expr) }
+    | name=identifier spaces "=" ~ spaces expr=(reference | group) { Capture(.name, .expr) }
 reference:
     | name=identifier { Reference(.name) }
 reject:
@@ -56,7 +56,7 @@ comment:
 blank:
     | spaces end_line { Discard() }
 define:
-    | name=identifier ":" spaces end_line rules=rules { (.name, .rules) }
+    | name=identifier ":" ~ spaces end_line rules=rules { (.name, .rules) }
 rules:
     | " " spaces try=rule spaces end_line else=rules { either(.try, .else) }
     | " " spaces rule=rule spaces end_line { .rule }
