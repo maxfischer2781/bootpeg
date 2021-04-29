@@ -85,15 +85,13 @@ def either(left: Clause[D], right: Clause[D]) -> Choice[D]:
 
 def require(target: Clause[D]) -> Clause[D]:
     """Commit to clauses efficiently"""
-    # TODO: can we handle `maybe_zero` safely here in general?
-    if isinstance(target, Choice) and isinstance(target.sub_clauses[-1], Nothing):
-        return target
-    elif isinstance(target, Commit):
+    # It is tempting to try and remove `maybe_zero` clauses here.
+    # However, we cannot actually do that: There is no full grammar here, just clauses
+    # – but at least Reference needs the grammar to derive its `maybe_zero`.
+    if isinstance(target, Commit):
         return target
     elif isinstance(target, Sequence):
-        return Sequence(
-            *(require(clause) for clause in target.sub_clauses)
-        )
+        return Sequence(*(require(clause) for clause in target.sub_clauses))
     else:
         return Commit(target)
 

@@ -260,29 +260,35 @@ class NamedFailure(NamedTuple):
     failures: Tuple[CommitFailure]
 
 
+def leaves(failure):
+    if isinstance(failure, CommitFailure):
+        yield failure
+    elif isinstance(failure, NamedFailure):
+        for child in failure.failures:
+            yield from leaves(child)
+    else:
+        raise NotImplementedError
+
+
 class CapturedParseFailure(Exception):
     """Parsing captured match failures"""
 
     def __init__(self, *failures: Union[NamedFailure, CommitFailure]):
         self.failures = failures
-        positions = sorted(self.positions)
-        super().__init__(
-            f"failed to parse at positions {', '.join(map(str, positions))}"
+        leave_failures = sorted(
+            {leave for failure in failures for leave in leaves(failure)},
+            key=lambda failure: failure.position,
         )
+        leave_reports = (
+            f"{str(failure.commit.sub_clauses[0])!r}@{failure.position}"
+            for failure in leave_failures
+        )
+        super().__init__(f'failed expected parse of {", ".join(leave_reports)}')
 
     @property
     def positions(self):
-        def recur_positions(failure):
-            if hasattr(failure, "position"):
-                yield failure.position
-            if hasattr(failure, "failures"):
-                for child in failure.failures:
-                    yield from recur_positions(child)
-
         return {
-            position
-            for failure in self.failures
-            for position in recur_positions(failure)
+            leave.position for failure in self.failures for leave in leaves(failure)
         }
 
 
