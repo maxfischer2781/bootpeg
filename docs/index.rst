@@ -20,6 +20,7 @@
    :hidden:
 
    source/parse_actions
+   source/peg_precedence
 
 .. toctree::
    :maxdepth: 1
