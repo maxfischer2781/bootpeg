@@ -284,7 +284,6 @@ class Sequence(Clause[D]):
     def __init__(self, *sub_clauses: Clause[D]):
         self.sub_clauses = sub_clauses
         self._maybe_zero = None
-        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         offset, matches = at, ()
@@ -327,7 +326,6 @@ class Choice(Clause[D]):
     def __init__(self, *sub_clauses: Clause[D]):
         self.sub_clauses = sub_clauses
         self._maybe_zero = None
-        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         for index, sub_clause in enumerate(self.sub_clauses):
@@ -375,7 +373,6 @@ class Repeat(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self._sub_clause = sub_clause
-        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         try:
@@ -430,7 +427,6 @@ class Not(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self._sub_clause = sub_clause
-        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         try:
@@ -476,7 +472,6 @@ class And(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self._sub_clause = sub_clause
-        self._hash = None
 
     def match(self, source: D, at: int, memo: MemoTable):
         try:
@@ -538,7 +533,6 @@ class Reference(Clause[D]):
     def __init__(self, target: str):
         self.target = target
         self._sub_clause = None
-        self._hash = None
         # TODO: Correct?
         self._maybe_zero: Optional[bool] = None
 

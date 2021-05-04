@@ -147,7 +147,6 @@ class Delimited(Clause[D]):
 
     def __init__(self, start: Clause[D], stop: Clause[D]):
         self.sub_clauses = start, stop
-        self._hash = None
 
     @property
     def triggers(self) -> "Tuple[Clause[D]]":

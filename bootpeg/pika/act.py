@@ -52,7 +52,6 @@ class Capture(Clause[D]):
     def __init__(self, name: str, sub_clause: Clause[D]):
         self.name = name
         self.sub_clauses = (sub_clause,)
-        self._hash = None
 
     @property
     def maybe_zero(self):
@@ -107,7 +106,6 @@ class Rule(Clause[D]):
     def __init__(self, sub_clause: Clause[D], action: "Action"):
         self.sub_clauses = (sub_clause,)
         self.action = action
-        self._hash = None
         self._verify_captures()
 
     def _verify_captures(self):
@@ -208,7 +206,6 @@ class Commit(Clause[D]):
 
     def __init__(self, sub_clause: Clause[D]):
         self.sub_clauses = (sub_clause,)
-        self._hash = None
 
     @property
     def maybe_zero(self):

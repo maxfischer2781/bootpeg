@@ -19,9 +19,10 @@ def cache_hash(__hash__):
 
     @wraps(__hash__)
     def cached_hash(self):
-        _hash = self._hash
-        if _hash is None:
+        try:
+            return self._hash
+        except AttributeError:
             _hash = self._hash = __hash__(self)
-        return _hash
+            return _hash
 
     return cached_hash
