@@ -230,16 +230,17 @@ class Literal(Terminal[D]):
     A terminal matching a fixed literal
     """
 
-    __slots__ = ("value",)
+    __slots__ = ("value", "_len")
     maybe_zero = False
 
     def __init__(self, value: D):
         assert value, "Literal may not be empty"
         self.value = value
+        self._len = len(value)
 
     def match(self, source: D, at: int, memo: MemoTable):
-        if source[at : at + len(self.value)] == self.value:
-            return Match(len(self.value), (), at, self)
+        if source[at : at + self._len] == self.value:
+            return Match(self._len, (), at, self)
         return None
 
     def __eq__(self, other):
