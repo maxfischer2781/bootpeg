@@ -68,3 +68,50 @@ branch to match as well.
     With recursive-choices,
     use terminals in early branches to *prevent* nesting but
     use terminals in later branches to *enable* nesting.
+
+Precedence via ordered recursion
+================================
+
+Properly ordering choices not only decides what input is matched,
+but also how it is matched –
+in specific, choice order determines the *precedence* of its clauses.
+
+A common example is precedence of mathematical operations.
+For example, one can express the precedence of multiplication over addition as
+"addition clauses may contain multiplication clauses"::
+
+    addition:
+        | lhr=addition ' '* '+' ~ ' '* rhs=multiplication { add(.lhs, .rhs) }
+        | up=multiplication { .up }
+    multiplication:
+        | lhr=multiplication ' '* '*' ~ ' '* rhs=power { mul(.lhs, .rhs) }
+        | up=power { .up }
+    power:
+        | lhs=primitive ' '* '^' ~ ' '* rhs=power { mul(.lhs, .rhs) }
+        | up=primitive { .up }
+    primitive:
+        | '(' ~ exp=top ')' { .exp }
+        | "1" - "9" ("0" - "9")* { int(.*) }
+    top:
+        | addition
+
+This structure is called "precedence climbing":
+Every clause may contain a clause of the next precedence level
+and "climb ``up``" at the current position.
+Notably, the ``top`` clause starts at the *lowest* precedence
+which then works its way ``up`` to the highest precedence;
+the jump back down from the highest to lowest precedence is only possible
+after advancing the position (by a literal match of an opening ``(`` or a number).
+
+In addition, the grammar expresses associativity via recursion:
+*left-associative* rules such as ``addition`` use *left-recursion*,
+whereas *right-associative* rules such as ``power`` use *right-recursion*. [#pika]_
+This allows the rule to expand in the respective direction.
+
+.. note::
+
+    Use choice ordering for precedence, and
+    left-/right-recursion for left-/right-associativity.
+
+.. [#pika] Such use of left-recursion is only possible due to `bootpeg`'s
+           :term:`Pika Parser`. Regular PEG parsers do not support such grammars/rules.

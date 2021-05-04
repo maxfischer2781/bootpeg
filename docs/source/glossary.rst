@@ -32,7 +32,7 @@ Glossary of Terms
       by matching bottom-up from the back of the input.
 
       The Pika algorithm was first
-      `published by Luke A. D. Hutchison <Luke A. D. Hutchison_>`_.
+      `published by Luke A. D. Hutchison <Pika Paper_>`_.
 
    PEG
    Parsing Expression Grammar

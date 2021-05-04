@@ -21,6 +21,7 @@
 
    source/parse_actions
    source/peg_precedence
+   source/glossary
 
 .. toctree::
    :maxdepth: 1
@@ -57,6 +58,10 @@ Like any PEG parser, `bootpeg` automatically
 creates unambiguous grammars,
 supports infinite lookahead,
 and allows to express grammars comfortably.
+
+* Native support for left-recursion and left-associativity.
+* Builtin error reporting covering multiple failures.
+* Automatic parser generation from a multitude of meta-grammars.
 
 This makes it straightforward to implement your own custom grammars without
 worrying about their implementation.
