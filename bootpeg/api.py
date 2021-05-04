@@ -19,11 +19,15 @@ class Action(Protocol[D, R]):
         ...
 
 
+def identity(x: T) -> T:
+    return x
+
+
 class Actions(Generic[D, T, R]):
     def __init__(
         self,
         names: Mapping[str, Union[Action[D, D], Action[D, T], Action[T, T]]],
-        post: Action[T, R],
+        post: Action[T, R] = identity,
     ):
         self.names = names
         self.post = post
