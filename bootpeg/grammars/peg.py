@@ -112,5 +112,5 @@ def _get_parser() -> Parser:
     return _parser_cache
 
 
-def parse(source, actions: Actions = PikaActions):
-    return generic_parse(source, _get_parser(), actions)
+def parse(source, actions: Actions = PikaActions, **kwargs):
+    return generic_parse(source, _get_parser(), actions, **kwargs)

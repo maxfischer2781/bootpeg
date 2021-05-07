@@ -118,8 +118,7 @@ EndOfFile <- !.
 
 def test_parse_reference():
     """Parse the PEG reference grammar"""
-    parser = peg.parse(peg_grammar)
-    parser.top = "Grammar"
+    parser = peg.parse(peg_grammar, top="Grammar")
     assert parser.parse(peg_grammar)
 
 
