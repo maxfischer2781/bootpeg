@@ -17,7 +17,7 @@ from ..pika.peg import (
 )
 from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
-from ..api import Actions, PikaActions, import_parser
+from ..api import PikaActions, import_parser
 from . import bpeg
 
 _parser_cache: Optional[Parser] = None
