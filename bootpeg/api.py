@@ -1,5 +1,8 @@
 from typing import Sequence, Mapping, Generic, TypeVar, Union
 from typing_extensions import Protocol
+from functools import partial
+
+import importlib_resources
 
 from .pika.peg import Parser, Clause
 from .pika.act import transform
@@ -52,3 +55,19 @@ def parse(source: D, parser: Parser[D], actions: Actions[D, T, R], **kwargs) -> 
     assert head.length == len(source), f"matched {head.length} of {len(source)}"
     pos_captures, kw_captures = transform(head, memo, actions.names)
     return actions.post(*pos_captures, **kw_captures, **kwargs)
+
+
+def import_parser(location: str, actions: Actions, dialect, **kwargs):
+    """
+    Create a parser with specific `actions` from a grammar at a `location`
+
+    :param location: a module or module-like name
+    :param actions: the actions to use for the new parser
+    :param dialect: the `bootpeg` parser compatible with the grammar
+    :param kwargs: any keyword arguments to bind to `actions`' post processing
+    """
+    package, _, name = location.rpartition(".")
+    source = importlib_resources.read_text(package, name + ".bpeg")
+    dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
+    parser = dialect(source)
+    return partial(parse, parser=parser, actions=actions, **kwargs)
