@@ -1,9 +1,8 @@
 """
 The default bootpeg grammar
 """
-from typing import Union, Optional
+from typing import Union
 from functools import singledispatch
-from pathlib import Path
 
 from ..pika.peg import (
     Clause,
@@ -21,7 +20,7 @@ from ..pika.peg import (
 from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
 from ..pika.boot import bootpeg, boot
-from ..api import Actions, PikaActions, import_parser
+from ..api import PikaActions, import_parser
 
 
 @singledispatch
@@ -100,9 +99,6 @@ def unparse_range(clause: Range, top=True) -> str:
 def unparse_delimited(clause: Delimited, top=True) -> str:
     first, last = clause.sub_clauses
     return f"{unparse(first, top=False)} :: {unparse(last, top=False)}"
-
-
-grammar_path = Path(__file__).parent / "bpeg.bpeg"
 
 
 def boot_dialect(source):

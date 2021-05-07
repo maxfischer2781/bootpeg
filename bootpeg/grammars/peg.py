@@ -1,6 +1,5 @@
-from typing import Optional, Union
+from typing import Union
 from functools import singledispatch
-from pathlib import Path
 
 from ..pika.peg import (
     Clause,
