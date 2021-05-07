@@ -20,9 +20,6 @@ from ..pika.front import Range, Delimited
 from ..api import PikaActions, import_parser
 from . import bpeg
 
-_parser_cache: Optional[Parser] = None
-grammar_path = Path(__file__).parent / "peg.bpeg"
-
 
 @singledispatch
 def unparse(clause: Union[Clause, Parser], top=True) -> str:
@@ -102,14 +99,6 @@ def unparse_delimited(clause: Delimited, top=True) -> str:
     first, last = (unparse(c, top=False) for c in clause.sub_clauses)
     children = f"{first} (!{last} .)* {last}"
     return f"({children})" if not top else children
-
-
-def _get_parser() -> Parser:
-    global _parser_cache
-    if _parser_cache is None:
-        parser = bpeg.parse(grammar_path.read_text())
-        _parser_cache = parser
-    return _parser_cache
 
 
 parse = import_parser(__name__, actions=PikaActions, dialect=bpeg)
