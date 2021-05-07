@@ -39,16 +39,16 @@ class Actions(Generic[D, T, R]):
 #: :py:class:`~.Actions` to construct a Pika parser
 PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
     names=pika_namespace,
-    post=lambda *args, **kwargs: Parser(
-        "top",
+    post=lambda *args, top="top", **kwargs: Parser(
+        top,
         **{name: clause for name, clause in args[0]},
     ),
 )
 
 
-def parse(source: D, parser: Parser[D], actions: Actions[D, T, R]) -> T:
+def parse(source: D, parser: Parser[D], actions: Actions[D, T, R], **kwargs) -> T:
     """Parse a ``source`` with a given ``parser`` and ``actions``"""
     head, memo = parser.parse(source)
     assert head.length == len(source), f"matched {head.length} of {len(source)}"
-    args, kwargs = transform(head, memo, actions.names)
-    return actions.post(*args, **kwargs)
+    pos_captures, kw_captures = transform(head, memo, actions.names)
+    return actions.post(*pos_captures, **kw_captures, **kwargs)
