@@ -27,10 +27,16 @@
 `bootpeg` is a PEG parser for creating parsers – including itself.
 By default, it supports a modified EBNF with actions akin to `PEP 617`_.
 
-.. code-block:: bash
+.. code-block:: python3
 
-    # memoizing bottom-up PEG parser
-    $ python3 -m bootpeg.pika.boot
+   >>> # recreate the bootpeg parser from itself
+   >>> from bootpeg.api import import_parser, PikaActions
+   >>> from bootpeg.grammars import bpeg
+   >>> parse_bpeg = bpeg.parse
+   >>> for _ in range(5):
+   ...     parse_bpeg = import_parser(
+   ...         bpeg.__name__, actions=PikaActions, dialect=parse_bpeg
+   ...     )
 
 Unlike most other Python PEG parsers which are top-down parsers,
 `bootpeg` provides a bottom-up `Pika parser`_:
