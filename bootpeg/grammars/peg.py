@@ -17,7 +17,7 @@ from ..pika.peg import (
 )
 from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
-from ..api import Actions, PikaActions, parse as generic_parse
+from ..api import Actions, PikaActions, import_parser
 from . import bpeg
 
 _parser_cache: Optional[Parser] = None
@@ -112,5 +112,4 @@ def _get_parser() -> Parser:
     return _parser_cache
 
 
-def parse(source, actions: Actions = PikaActions, **kwargs):
-    return generic_parse(source, _get_parser(), actions, **kwargs)
+parse = import_parser(__name__, actions=PikaActions, dialect=bpeg)
