@@ -1,6 +1,5 @@
-from typing import Optional, Union
+from typing import Union
 from functools import singledispatch
-from pathlib import Path
 
 from ..pika.peg import (
     Clause,
@@ -17,11 +16,8 @@ from ..pika.peg import (
 )
 from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
-from ..api import Actions, PikaActions, parse as generic_parse
+from ..api import PikaActions, import_parser
 from . import bpeg
-
-_parser_cache: Optional[Parser] = None
-grammar_path = Path(__file__).parent / "peg.bpeg"
 
 
 @singledispatch
@@ -104,13 +100,4 @@ def unparse_delimited(clause: Delimited, top=True) -> str:
     return f"({children})" if not top else children
 
 
-def _get_parser() -> Parser:
-    global _parser_cache
-    if _parser_cache is None:
-        parser = bpeg.parse(grammar_path.read_text())
-        _parser_cache = parser
-    return _parser_cache
-
-
-def parse(source, actions: Actions = PikaActions):
-    return generic_parse(source, _get_parser(), actions)
+parse = import_parser(__name__, actions=PikaActions, dialect=bpeg)

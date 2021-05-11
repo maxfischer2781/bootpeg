@@ -19,6 +19,7 @@
    :caption: Usage and Guides
    :hidden:
 
+   source/getting_started
    source/parse_actions
    source/peg_precedence
    source/glossary
@@ -43,11 +44,14 @@ By default, it supports a modified EBNF with actions akin to `PEP 617`_.
 
 .. code-block:: python3
 
-   >>> # recreate the bootpeg parser
+   >>> # recreate the bootpeg parser from itself
+   >>> from bootpeg.api import import_parser, PikaActions
    >>> from bootpeg.grammars import bpeg
-   >>> bpeg.parse(
-   ...     bpeg.grammar_path.read_text()
-   ... )
+   >>> parse_bpeg = bpeg.parse
+   >>> for _ in range(5):
+   ...     parse_bpeg = import_parser(
+   ...         bpeg.__name__, actions=PikaActions, dialect=parse_bpeg
+   ...     )
 
 Unlike most other Python PEG parsers which are top-down parsers,
 `bootpeg` provides a bottom-up `Pika parser`_:
