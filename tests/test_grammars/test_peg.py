@@ -2,6 +2,7 @@ import sys
 
 import pytest
 
+from bootpeg import create_parser, Actions
 from bootpeg.grammars import peg
 from bootpeg.pika.front import (
     Rule,
@@ -118,8 +119,8 @@ EndOfFile <- !.
 
 def test_parse_reference():
     """Parse the PEG reference grammar"""
-    parser = peg.parse(peg_grammar, top="Grammar")
-    assert parser.parse(peg_grammar)
+    parse = create_parser(peg_grammar, actions=Actions({}), dialect=peg, top="Grammar")
+    assert parse(peg_grammar)
 
 
 def test_parse_short():
