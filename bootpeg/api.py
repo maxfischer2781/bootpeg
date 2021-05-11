@@ -64,11 +64,11 @@ def create_parser(source: str, actions: Actions, dialect, **kwargs):
     :param source: a textual grammar
     :param actions: the actions to use for the new parser
     :param dialect: the `bootpeg` parser compatible with the grammar
-    :param kwargs: any keyword arguments to bind to `actions`' post processing
+    :param kwargs: any keyword arguments for the `dialect`'s post processing
     """
     dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
-    parser = dialect(source)
-    return partial(parse, parser=parser, actions=actions, **kwargs)
+    parser = dialect(source, **kwargs)
+    return partial(parse, parser=parser, actions=actions)
 
 
 def import_parser(location: str, actions: Actions, dialect, **kwargs):
@@ -78,10 +78,10 @@ def import_parser(location: str, actions: Actions, dialect, **kwargs):
     :param location: a module or module-like name
     :param actions: the actions to use for the new parser
     :param dialect: the `bootpeg` parser compatible with the grammar
-    :param kwargs: any keyword arguments to bind to `actions`' post processing
+    :param kwargs: any keyword arguments for the `dialect`'s post processing
     """
     package, _, name = location.rpartition(".")
     source = importlib_resources.read_text(package, name + ".bpeg")
     dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
-    parser = dialect(source)
-    return partial(parse, parser=parser, actions=actions, **kwargs)
+    parser = dialect(source, **kwargs)
+    return partial(parse, parser=parser, actions=actions)
