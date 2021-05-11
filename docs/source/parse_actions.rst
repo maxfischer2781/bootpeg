@@ -1,4 +1,4 @@
-.. grammar_actions:
+.. _grammar_actions:
 
 ====================
 Grammars and Actions

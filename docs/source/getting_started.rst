@@ -10,8 +10,8 @@ tell `bootpeg` to use both to create the parser.
 
 This guide shows the parts needed to create a parser for
 basic scientific number notation.
-It can parse numbers as `integer`, such as ``1`` or ``-16``,
-or `scientific`, such as ``1e0`` or ``-160E-1``.
+It can parse numbers as `integer`, such as ``10`` or ``-16``,
+or `scientific`, such as ``1e1`` or ``-160E-1``.
 
 Grammar and Actions
 ===================
