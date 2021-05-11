@@ -79,6 +79,14 @@ def import_parser(location: str, actions: Actions, dialect, **kwargs):
     :param actions: the actions to use for the new parser
     :param dialect: the `bootpeg` parser compatible with the grammar
     :param kwargs: any keyword arguments for the `dialect`'s post processing
+
+    The `location` is a dotted module name; it is used to look up the grammar using the
+    import machinery. Grammar resources have the extension ``.bpeg`` instead of ``.py``.
+
+    For example, the location ``"bootpeg.grammars.peg"`` looks for a resource named
+    ``peg.bpeg`` in the module ``bootpeg.grammars``. Commonly, this means the file
+    ``bootpeg/grammars/peg.bpeg``, though the import machinery also supports other
+    resource types such as zip archive members.
     """
     package, _, name = location.rpartition(".")
     source = importlib_resources.read_text(package, name + ".bpeg")
