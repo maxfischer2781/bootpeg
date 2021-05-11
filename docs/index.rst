@@ -19,6 +19,7 @@
    :caption: Usage and Guides
    :hidden:
 
+   source/getting_started
    source/parse_actions
    source/peg_precedence
    source/glossary

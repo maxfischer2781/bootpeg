@@ -1,3 +1,5 @@
+.. peg_choices:
+
 ======================
 Choices and Precedence
 ======================
