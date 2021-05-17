@@ -613,12 +613,16 @@ class Parser(Generic[D]):
         if self._compiled_parser is None:
             self._compiled_parser = self._compile(self.top, self.clauses)
 
-    def parse(self, source: D):
-        """Parse a ``source`` sequence"""
+    @property
+    def _parser(self):
         if self._compiled_parser is None:
             self._compiled_parser = self._compile(self.top, self.clauses)
-        owned_clauses, triggers, priorities = self._compiled_parser
-        terminals: List[Tuple[int, Clause[D]], ...] = [
+        return self._compiled_parser
+
+    def parse(self, source: D):
+        """Parse a ``source`` sequence"""
+        owned_clauses, triggers, priorities = self._parser
+        terminals: List[Tuple[int, Clause[D]]] = [
             (-i, clause)
             for i, clause in enumerate(priorities)
             if isinstance(clause, Terminal) and not clause.maybe_zero
