@@ -7,22 +7,10 @@ import importlib_resources
 from .pika.peg import Parser, Clause
 from .pika.act import transform
 from .pika.boot import namespace as pika_namespace
+from .typing import Transform as Action, T, R, TR, D
 
 
-#: Parser domain: The input type for parsing, such as str or bytes
-D = TypeVar("D", covariant=True, bound=Sequence)
-#: Transform domain/result: The internal input type and output type of transforming,
-#: such as str, tuple, or ast.AST
-T = TypeVar("T")
-R = TypeVar("R", contravariant=True)
-
-
-class Action(Protocol[D, R]):
-    def __call__(self, *args: D, **kwargs: D) -> R:
-        ...
-
-
-def identity(x: T) -> T:
+def identity(x: TR) -> TR:
     return x
 
 
@@ -49,7 +37,7 @@ PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
 )
 
 
-def parse(source: D, parser: Parser[D], actions: Actions[D, T, R], **kwargs) -> T:
+def parse(source: D, parser: Parser[D], actions: Actions[D, T, R], **kwargs) -> R:
     """Parse a ``source`` with a given ``parser`` and ``actions``"""
     head, memo = parser.parse(source)
     assert head.length == len(source), f"matched {head.length} of {len(source)}"

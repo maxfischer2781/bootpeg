@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 import string
 import time
@@ -63,9 +63,9 @@ def range_parse(source: str, parser: Parser):
     )
 
 
-def report_matches(memo: MemoTable):
+def report_matches(memo: MemoTable[str]):
     """Show matched range(s) by a parsed memo table"""
-    longest_matches = {}
+    longest_matches: Dict[int, Match] = {}
     for match in memo.matches.values():
         length, _, position, *_ = match
         if isinstance(match.clause, Repeat) and isinstance(
@@ -97,11 +97,10 @@ def report_matches(memo: MemoTable):
 def display(parser: Parser):
     """Display a parser in PEG form"""
     try:
-        parser._prepare()
+        clauses, _, priorities = parser._parser
     except Exception:
         pass
     else:
-        clauses, _, priorities = parser._compiled_parser
         print("Total Rules:", len(list(postorder_dfs(clauses[parser.top]))))
         print(f"{'named rule':<10} <- Prio -", "Clause")
         for name, clause in sorted(clauses.items(), key=lambda n_c: priorities[n_c[1]]):
@@ -137,7 +136,7 @@ namespace = {
 }
 
 
-end_line = Reference("end_line")  # Literal("\n")
+end_line: Reference[str] = Reference("end_line")  # Literal("\n")
 
 #: Minimal parser required to bootstrap the actual parser
 min_parser = Parser(

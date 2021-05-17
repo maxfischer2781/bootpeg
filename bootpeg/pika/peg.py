@@ -20,11 +20,8 @@ import copy
 import heapq
 import functools
 
+from ..typing import D
 from ..utility import cache_hash
-
-
-#: Parser domain: The input type for parsing, such as str or bytes
-D = TypeVar("D", bound=SequenceType)
 
 
 # Ascending memoization
