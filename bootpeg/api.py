@@ -1,5 +1,4 @@
-from typing import Sequence, Mapping, Generic, TypeVar, Union
-from typing_extensions import Protocol
+from typing import Mapping, Generic, Union
 from functools import partial
 
 import importlib_resources
