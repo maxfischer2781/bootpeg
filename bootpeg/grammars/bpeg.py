@@ -21,6 +21,7 @@ from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
 from ..pika.boot import bootpeg, boot
 from ..api import PikaActions, import_parser
+from ..typing import BootPegParser
 
 
 @singledispatch
@@ -105,4 +106,6 @@ def boot_dialect(source):
     return boot(bootpeg(), source)
 
 
-parse = import_parser(__name__, actions=PikaActions, dialect=boot_dialect)
+parse: BootPegParser[str, BootPegParser] = import_parser(
+    __name__, actions=PikaActions, dialect=boot_dialect
+)

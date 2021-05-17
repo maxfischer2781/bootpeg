@@ -7,7 +7,7 @@ import importlib_resources
 from .pika.peg import Parser, Clause
 from .pika.act import transform
 from .pika.boot import namespace as pika_namespace
-from .typing import Transform as Action, T, R, TR, D
+from .typing import Transform as Action, T, R, TR, D, BootPegParser
 
 
 def identity(x: TR) -> TR:
@@ -45,7 +45,9 @@ def parse(source: D, parser: Parser[D], actions: Actions[D, T, R], **kwargs) -> 
     return actions.post(*pos_captures, **kw_captures, **kwargs)
 
 
-def create_parser(source: str, actions: Actions, dialect, **kwargs):
+def create_parser(
+    source: str, actions: Actions, dialect, **kwargs
+) -> BootPegParser[D, R]:
     """
     Create a parser with specific `actions` from a `source` grammar
 
@@ -59,7 +61,9 @@ def create_parser(source: str, actions: Actions, dialect, **kwargs):
     return partial(parse, parser=parser, actions=actions)
 
 
-def import_parser(location: str, actions: Actions, dialect, **kwargs):
+def import_parser(
+    location: str, actions: Actions, dialect, **kwargs
+) -> BootPegParser[D, R]:
     """
     Import a parser with specific `actions` from a grammar at a `location`
 
