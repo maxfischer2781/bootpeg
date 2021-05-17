@@ -660,7 +660,9 @@ class Parser(Generic[D]):
     def _compile_triggers(
         top_clause: Clause[D],
     ) -> Dict[Clause[D], Tuple[Clause[D], ...]]:
-        triggers: Dict[Clause[D], Tuple[Clause[D], ...]] = {trigger: () for trigger in postorder_dfs(top_clause)}
+        triggers: Dict[Clause[D], Tuple[Clause[D], ...]] = {
+            trigger: () for trigger in postorder_dfs(top_clause)
+        }
         for parent in postorder_dfs(top_clause):
             for trigger in parent.triggers:
                 triggers[trigger] += (parent,)

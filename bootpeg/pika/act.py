@@ -341,7 +341,9 @@ def postorder_transform(
         )
         return (), captures, failures
     elif isinstance(clause, Rule):
-        rule_matches: Union[Tuple[Any, ...], D] = matches if matches else source[position : position + match.length]
+        rule_matches: Union[Tuple[Any, ...], D] = (
+            matches if matches else source[position : position + match.length]
+        )
         try:
             result = clause.action(namespace, rule_matches, **captures)
         except ActionCaptureError:
