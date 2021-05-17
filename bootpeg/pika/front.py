@@ -149,7 +149,7 @@ class Delimited(Clause[D]):
         self.sub_clauses = start, stop
 
     @property
-    def triggers(self) -> "Tuple[Clause[D]]":
+    def triggers(self) -> "Tuple[Clause[D], ...]":
         return self.sub_clauses[:1]
 
     def match(self, source: D, at: int, memo: MemoTable) -> Optional[Match]:

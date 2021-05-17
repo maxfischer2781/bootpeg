@@ -9,7 +9,7 @@ from typing import (
     TypeVar,
     Dict,
     Tuple,
-    Sequence,
+    Sequence as SequenceType,
     Optional,
     NoReturn,
     Iterable,
@@ -24,7 +24,7 @@ from ..utility import cache_hash
 
 
 #: Parser domain: The input type for parsing, such as str or bytes
-D = TypeVar("D", covariant=True, bound=Sequence)
+D = TypeVar("D", bound=SequenceType)
 
 
 # Ascending memoization
@@ -60,11 +60,11 @@ class Match(NamedTuple):
 class MemoTable(Generic[D]):
     __slots__ = ("matches", "source")
 
-    def __init__(self, source):
+    def __init__(self, source: D):
         self.source = source
         self.matches: Dict[MemoKey, Match] = {}
 
-    def __getitem__(self, item: MemoKey):
+    def __getitem__(self, item: MemoKey) -> Match:
         try:
             return self.matches[item]
         except KeyError:
@@ -286,7 +286,7 @@ class Sequence(Clause[D]):
         self._maybe_zero = None
 
     def match(self, source: D, at: int, memo: MemoTable):
-        offset, matches = at, ()
+        offset, matches = at, ()  # type: int, Tuple[Match, ...]
         try:
             for sub_clause in self.sub_clauses:
                 sub_match = memo[MemoKey(offset, sub_clause)]
@@ -364,11 +364,11 @@ class Repeat(Clause[D]):
         return self._sub_clause.maybe_zero
 
     @property
-    def sub_clauses(self) -> Tuple[Clause[D]]:
+    def sub_clauses(self) -> Tuple[Clause[D], ...]:
         return (self._sub_clause,)
 
     @sub_clauses.setter
-    def sub_clauses(self, values: Tuple[Clause[D]]):
+    def sub_clauses(self, values: Tuple[Clause[D], ...]):
         (self._sub_clause,) = values
 
     def __init__(self, sub_clause: Clause[D]):
@@ -414,11 +414,11 @@ class Not(Clause[D]):
     maybe_zero = True
 
     @property
-    def sub_clauses(self) -> Tuple[Clause[D]]:
+    def sub_clauses(self) -> Tuple[Clause[D], ...]:
         return (self._sub_clause,)
 
     @sub_clauses.setter
-    def sub_clauses(self, value: Tuple[Clause[D]]):
+    def sub_clauses(self, value: Tuple[Clause[D], ...]):
         (self._sub_clause,) = value
 
     @property
@@ -463,7 +463,7 @@ class And(Clause[D]):
         return False
 
     @property
-    def sub_clauses(self) -> Tuple[Clause[D]]:
+    def sub_clauses(self) -> Tuple[Clause[D], ...]:
         return (self._sub_clause,)
 
     @sub_clauses.setter
@@ -532,7 +532,7 @@ class Reference(Clause[D]):
 
     def __init__(self, target: str):
         self.target = target
-        self._sub_clause = None
+        self._sub_clause: Optional[Clause[D]] = None
         # TODO: Correct?
         self._maybe_zero: Optional[bool] = None
 
@@ -663,7 +663,7 @@ class Parser(Generic[D]):
     def _compile_triggers(
         top_clause: Clause[D],
     ) -> Dict[Clause[D], Tuple[Clause[D], ...]]:
-        triggers = {trigger: () for trigger in postorder_dfs(top_clause)}
+        triggers: Dict[Clause[D], Tuple[Clause[D], ...]] = {trigger: () for trigger in postorder_dfs(top_clause)}
         for parent in postorder_dfs(top_clause):
             for trigger in parent.triggers:
                 triggers[trigger] += (parent,)
