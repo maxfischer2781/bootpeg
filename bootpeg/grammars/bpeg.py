@@ -20,7 +20,7 @@ from ..pika.peg import (
 from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
 from ..pika.boot import bootpeg, boot
-from ..api import PikaActions, import_parser
+from ..api import bootpeg_actions, bootpeg_post, import_parser
 from ..typing import BootPegParser
 
 
@@ -107,5 +107,5 @@ def boot_dialect(source):
 
 
 parse: BootPegParser[str, BootPegParser] = import_parser(
-    __name__, actions=PikaActions, dialect=boot_dialect
+    __name__, dialect=boot_dialect, actions=bootpeg_actions, post=bootpeg_post,
 )

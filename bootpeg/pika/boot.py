@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Mapping, Callable
 
 import string
 import time
@@ -7,6 +7,7 @@ import pathlib
 from ..utility import ascii_escapes
 from .peg import postorder_dfs, ParseFailure, MemoTable, Match
 from .front import (
+    Clause,
     Literal,
     Sequence,
     Choice,
@@ -109,7 +110,7 @@ def display(parser: Parser):
                 print("Debugs:", clause.sub_clauses[0])
 
 
-namespace = {
+namespace: Mapping[str, Callable[..., Clause]] = {
     expression.__name__: expression
     for expression in (
         Literal,

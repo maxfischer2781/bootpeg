@@ -1,4 +1,4 @@
-from typing import Mapping, Generic, Union
+from typing import Mapping, Union
 from functools import partial
 
 import importlib_resources
@@ -6,46 +6,40 @@ import importlib_resources
 from .pika.peg import Parser, Clause
 from .pika.act import transform
 from .pika.boot import namespace as pika_namespace
-from .typing import Transform as Action, T, R, TR, D, BootPegParser
+from .typing import Transform, R, TR, D, BootPegParser
 
 
 def identity(x: TR) -> TR:
     return x
 
 
-class Actions(Generic[D, T, R]):
-    def __init__(
-        self,
-        names: Mapping[str, Union[Action[D, D], Action[D, T], Action[T, T]]],
-        post: Action[T, R] = identity,
-    ):
-        self.names = names
-        self.post = post
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.names!r}, {self.post!r})"
+bootpeg_actions: Mapping[str, Union[Transform[str, Clause], Transform[Clause, Clause]]] = pika_namespace
 
 
-#: :py:class:`~.Actions` to construct a Pika parser
-PikaActions: Actions[str, Union[str, Clause[str]], Parser] = Actions(
-    names=pika_namespace,
-    post=lambda *args, top="top", **kwargs: Parser(
-        top,
-        **{name: clause for name, clause in args[0]},
-    ),
-)
+def bootpeg_post(*args, top="top"):
+    return Parser(top, **{name: clause for name, clause in args[0]})
 
 
-def parse(source: D, parser: Parser[D], actions: Actions[D, T, R], **kwargs) -> R:
+def parse(
+    source: D,
+    parser: Parser[D],
+    actions: Mapping[str, Union[Transform[D, TR], Transform[TR, TR]]],
+    post: Transform[TR, R] = identity,
+    **kwargs,
+) -> R:
     """Parse a ``source`` with a given ``parser`` and ``actions``"""
     head, memo = parser.parse(source)
     assert head.length == len(source), f"matched {head.length} of {len(source)}"
-    pos_captures, kw_captures = transform(head, memo, actions.names)
-    return actions.post(*pos_captures, **kw_captures, **kwargs)
+    pos_captures, kw_captures = transform(head, memo, actions)
+    return post(*pos_captures, **kw_captures, **kwargs)
 
 
 def create_parser(
-    source: str, actions: Actions, dialect, **kwargs
+    source: str,
+    dialect,
+    actions: Mapping[str, Union[Transform[D, TR], Transform[TR, TR]]],
+    post: Transform[TR, R] = identity,
+    **kwargs,
 ) -> BootPegParser[D, R]:
     """
     Create a parser with specific `actions` from a `source` grammar
@@ -57,11 +51,15 @@ def create_parser(
     """
     dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
     parser = dialect(source, **kwargs)
-    return partial(parse, parser=parser, actions=actions)
+    return partial(parse, parser=parser, actions=actions, post=post)
 
 
 def import_parser(
-    location: str, actions: Actions, dialect, **kwargs
+    location: str,
+    dialect,
+    actions: Mapping[str, Union[Transform[D, TR], Transform[TR, TR]]],
+    post: Transform[TR, R] = identity,
+    **kwargs,
 ) -> BootPegParser[D, R]:
     """
     Import a parser with specific `actions` from a grammar at a `location`
@@ -83,4 +81,4 @@ def import_parser(
     source = importlib_resources.read_text(package, name + ".bpeg")
     dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
     parser = dialect(source, **kwargs)
-    return partial(parse, parser=parser, actions=actions)
+    return partial(parse, parser=parser, actions=actions, post=post)
