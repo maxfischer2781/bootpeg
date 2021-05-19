@@ -107,5 +107,8 @@ def boot_dialect(source):
 
 
 parse: BootPegParser[str, BootPegParser] = import_parser(
-    __name__, dialect=boot_dialect, actions=bootpeg_actions, post=bootpeg_post,
+    __name__,
+    dialect=boot_dialect,
+    actions=bootpeg_actions,
+    post=bootpeg_post,
 )

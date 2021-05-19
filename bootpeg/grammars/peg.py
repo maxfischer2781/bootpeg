@@ -102,5 +102,8 @@ def unparse_delimited(clause: Delimited, top=True) -> str:
 
 
 parse: BootPegParser[str, BootPegParser] = import_parser(
-    __name__, dialect=bpeg, actions=bootpeg_actions, post=bootpeg_post,
+    __name__,
+    dialect=bpeg,
+    actions=bootpeg_actions,
+    post=bootpeg_post,
 )

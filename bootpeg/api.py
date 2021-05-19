@@ -13,7 +13,9 @@ def identity(x: TR) -> TR:
     return x
 
 
-bootpeg_actions: Mapping[str, Union[Transform[str, Clause], Transform[Clause, Clause]]] = pika_namespace
+bootpeg_actions: Mapping[
+    str, Union[Transform[str, Clause], Transform[Clause, Clause]]
+] = pika_namespace
 
 
 def bootpeg_post(*args, top="top"):
