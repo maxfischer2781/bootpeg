@@ -1,4 +1,4 @@
-from typing import Mapping, Union
+from typing import Mapping, Callable
 from functools import partial
 
 import importlib_resources
@@ -6,16 +6,14 @@ import importlib_resources
 from .pika.peg import Parser, Clause
 from .pika.act import transform
 from .pika.boot import namespace as pika_namespace
-from .typing import Transform, R, TR, D, BootPegParser
+from .typing import R, TR, D, BootPegParser
 
 
 def identity(x: TR) -> TR:
     return x
 
 
-bootpeg_actions: Mapping[
-    str, Union[Transform[str, Clause], Transform[Clause, Clause]]
-] = pika_namespace
+bootpeg_actions: Mapping[str, Callable[..., Clause]] = pika_namespace
 
 
 def bootpeg_post(*args, top="top"):
@@ -25,8 +23,8 @@ def bootpeg_post(*args, top="top"):
 def parse(
     source: D,
     parser: Parser[D],
-    actions: Mapping[str, Union[Transform[D, TR], Transform[TR, TR]]],
-    post: Transform[TR, R] = identity,
+    actions: Mapping[str, Callable],
+    post: Callable[..., R] = identity,
     **kwargs,
 ) -> R:
     """Parse a ``source`` with a given ``parser`` and ``actions``"""
@@ -39,8 +37,8 @@ def parse(
 def create_parser(
     source: str,
     dialect,
-    actions: Mapping[str, Union[Transform[D, TR], Transform[TR, TR]]],
-    post: Transform[TR, R] = identity,
+    actions: Mapping[str, Callable],
+    post: Callable[..., R] = identity,
     **kwargs,
 ) -> BootPegParser[D, R]:
     """
@@ -59,8 +57,8 @@ def create_parser(
 def import_parser(
     location: str,
     dialect,
-    actions: Mapping[str, Union[Transform[D, TR], Transform[TR, TR]]],
-    post: Transform[TR, R] = identity,
+    actions: Mapping[str, Callable],
+    post: Callable[..., R] = identity,
     **kwargs,
 ) -> BootPegParser[D, R]:
     """

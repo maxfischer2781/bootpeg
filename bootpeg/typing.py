@@ -32,15 +32,6 @@ class Domain(Protocol):
         raise NotImplementedError
 
 
-class Transform(Protocol[T, R]):
-    """
-    Protocol for any callable mapping from input type(s) ``T`` to output type ``R``
-    """
-
-    def __call__(self, *args: T, **kwargs: T) -> R:
-        raise NotImplementedError
-
-
 class BootPegParser(Protocol[D_contra, R]):
     """
     Protocol for all :py:mod:`bootpeg` parsers creating parsers
