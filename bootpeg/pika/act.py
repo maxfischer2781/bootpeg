@@ -12,7 +12,7 @@ from ..utility import mono, cache_hash
 R = TypeVar("R", contravariant=True)
 
 
-class Debug(Clause[D]):
+class Debug(Clause[str]):
     def __init__(self, sub_clause, name: str = None):
         self.sub_clauses = (sub_clause,)
         self.name = name or str(sub_clause)
@@ -21,7 +21,7 @@ class Debug(Clause[D]):
     def maybe_zero(self):
         return self.sub_clauses[0].maybe_zero
 
-    def match(self, source: D, at: int, memo: MemoTable):
+    def match(self, source: str, at: int, memo: MemoTable):
         try:
             parent_match = memo[MemoKey(at, self.sub_clauses[0])]
         except KeyError:
@@ -253,7 +253,7 @@ class NamedFailure(NamedTuple):
     """Information on all failures of a :py:class:`~.Reference` match"""
 
     name: str
-    failures: Tuple[CommitFailure]
+    failures: Tuple[CommitFailure, ...]
 
 
 def leaves(failure):
@@ -324,7 +324,7 @@ def postorder_transform(
         if Commit.failed(match):
             failures = (*failures, CommitFailure(position, clause))
     elif isinstance(clause, Reference):
-        new_failures = tuple(
+        new_failures: Tuple[CommitFailure, ...] = tuple(
             failure for failure in failures if not isinstance(failure, NamedFailure)
         )
         if new_failures:
@@ -341,9 +341,11 @@ def postorder_transform(
         )
         return (), captures, failures
     elif isinstance(clause, Rule):
-        matches = matches if matches else source[position : position + match.length]
+        rule_matches: Union[Tuple[Any, ...], D] = (
+            matches if matches else source[position : position + match.length]
+        )
         try:
-            result = clause.action(namespace, matches, **captures)
+            result = clause.action(namespace, rule_matches, **captures)
         except ActionCaptureError:
             raise
         except Exception as exc:

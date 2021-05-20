@@ -16,7 +16,8 @@ from ..pika.peg import (
 )
 from ..pika.act import Capture, Rule
 from ..pika.front import Range, Delimited
-from ..api import PikaActions, import_parser
+from ..api import bootpeg_actions, bootpeg_post, import_parser
+from ..typing import BootPegParser
 from . import bpeg
 
 
@@ -100,4 +101,9 @@ def unparse_delimited(clause: Delimited, top=True) -> str:
     return f"({children})" if not top else children
 
 
-parse = import_parser(__name__, actions=PikaActions, dialect=bpeg)
+parse: BootPegParser[str, BootPegParser] = import_parser(
+    __name__,
+    dialect=bpeg,
+    actions=bootpeg_actions,
+    post=bootpeg_post,
+)

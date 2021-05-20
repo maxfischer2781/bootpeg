@@ -1,6 +1,6 @@
 """bootpeg – the bootstrapping PEG parser"""
-from .api import Actions, parse, create_parser, import_parser
+from .api import parse, create_parser, import_parser
 
-__all__ = ["Actions", "parse", "create_parser", "import_parser"]
+__all__ = ["parse", "create_parser", "import_parser"]
 
-__version__ = "0.0.2"
+__version__ = "0.6.0"

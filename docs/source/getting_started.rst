@@ -43,17 +43,19 @@ and how it is to be interpreted:
 
 The *Actions* are callables and constants needed to transform input.
 You can define actions freely using any code you like;
-the ``Actions`` type serves to translate from the matched input to your actions:
+``bootpeg`` merely expects them in a mapping from each
+of the grammar's names to the respective action:
 
 .. code:: python3
 
-    >>> from bootpeg import Actions
-    >>> example_actions = Actions(
-    ...     # map from names used in the grammar to callables
-    ...     names={'Integer': int}
-    ...     # an optional `post` action allows to directly handle results
-    ...     # post=print
-    ... )
+    >>> # map from names used in the grammar to callables
+    >>> example_actions = {
+    ...     # use the builtin `int` to interpret any matched Integer
+    ...     'Integer': int
+    ... }
+
+In addition, ``bootpeg`` allows to apply a ``post``\ processing action.
+By default, this just returns the result of parsing as-is.
 
 Boot the PEG
 ============
@@ -74,7 +76,7 @@ Simply pass in the grammar, the actions defined, and the dialect
 
 .. code:: python3
 
-    >>> from bootpeg import create_parser, Actions
+    >>> from bootpeg import create_parser
     >>> from bootpeg.grammars import bpeg
     >>> example_grammar = """\
     ... integer:
@@ -85,8 +87,8 @@ Simply pass in the grammar, the actions defined, and the dialect
     ...     | scientific
     ...     | integer
     ... """
-    >>> example_actions = Actions(names={'Integer': int})
-    >>> parse = create_parser(example_grammar, example_actions, bpeg)
+    >>> example_actions = {'Integer': int}
+    >>> parse = create_parser(example_grammar, bpeg, example_actions)
     >>> parse("12")
     12
     >>> parse("12E6")
