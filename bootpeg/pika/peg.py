@@ -491,7 +491,6 @@ class And(Clause[D]):
 
 
 # Grammar Definitions
-# TODO: Add Actions/Rules/Transforms
 class UnboundReference(LookupError):
     def __init__(self, target: str):
         self.target = target
@@ -528,7 +527,6 @@ class Reference(Clause[D]):
     def __init__(self, target: str):
         self.target = target
         self._sub_clause: Optional[Clause[D]] = None
-        # TODO: Correct?
         self._maybe_zero: Optional[bool] = None
 
     @property
