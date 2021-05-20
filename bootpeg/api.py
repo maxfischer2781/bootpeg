@@ -42,11 +42,12 @@ def create_parser(
     **kwargs,
 ) -> BootPegParser[D, R]:
     """
-    Create a parser with specific `actions` from a `source` grammar
+    Create a parser from a `source` grammar
 
     :param source: a textual grammar
-    :param actions: the actions to use for the new parser
     :param dialect: the `bootpeg` parser compatible with the grammar
+    :param actions: the actions to use for the new parser
+    :param post: the postprocessing action to use for the new parser
     :param kwargs: any keyword arguments for the `dialect`'s post processing
     """
     dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
@@ -62,11 +63,12 @@ def import_parser(
     **kwargs,
 ) -> BootPegParser[D, R]:
     """
-    Import a parser with specific `actions` from a grammar at a `location`
+    Import a parser from a grammar at a `location`
 
     :param location: a module or module-like name
-    :param actions: the actions to use for the new parser
     :param dialect: the `bootpeg` parser compatible with the grammar
+    :param actions: the actions to use for the new parser
+    :param post: the postprocessing action to use for the new parser
     :param kwargs: any keyword arguments for the `dialect`'s post processing
 
     The `location` is a dotted module name; it is used to look up the grammar using the
