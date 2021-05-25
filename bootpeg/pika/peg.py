@@ -203,7 +203,7 @@ class Anything(Terminal[D]):
         self.length = length
 
     def match(self, source: D, at: int, memo: MemoTable):
-        if at + self.length < len(source):
+        if at + self.length <= len(source):
             return Match(self.length, (), at, self)
         return None
 
