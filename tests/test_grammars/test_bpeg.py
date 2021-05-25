@@ -68,3 +68,13 @@ def test_multiuse_actions(source):
     )
     result = multiuse_parse(source)
     assert result == (source, source)
+
+
+def test_not_anything():
+    """Test that ``Anything`` does not match after the end"""
+    not_anything_parse = create_parser(
+        "top:\n    | a=(.) !. { (.a) }\n", bpeg, actions={}
+    )
+    assert not_anything_parse("b") == "b"
+    with pytest.raises(Exception):
+        not_anything_parse("bb")
