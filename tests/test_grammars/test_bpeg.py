@@ -1,5 +1,6 @@
 import pytest
 
+from bootpeg import create_parser
 from bootpeg.grammars import bpeg
 from bootpeg.pika.front import (
     Rule,
@@ -57,3 +58,13 @@ def test_commit(source, positions):
         assert cpf.positions == positions
     else:
         assert not positions, "Expected parse failures, found none"
+
+
+@pytest.mark.parametrize("source", ["a", "bcde"])
+def test_multiuse_actions(source):
+    """Test that using the same capture multiple times is valid"""
+    multiuse_parse = create_parser(
+        "top:\n    | a=(.*) { (.a, .a) }\n", bpeg, actions={}
+    )
+    result = multiuse_parse(source)
+    assert result == (source, source)
