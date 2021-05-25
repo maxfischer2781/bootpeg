@@ -73,7 +73,7 @@ class Capture(Clause[D]):
         return hash((self.name, self.sub_clauses))
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.sub_clauses[0]!r})"
+        return f"{self.__class__.__name__}({self.name!r}, {self.sub_clauses[0]!r})"
 
     def __str__(self):
         return f"{self.name}={nested_str(self.sub_clauses[0])}"
