@@ -1,7 +1,7 @@
 """
 Pika bottom-up Peg parser extension to transform parsed source
 """
-from typing import TypeVar, Any, Dict, Tuple, Mapping, Union, NamedTuple
+from typing import TypeVar, Any, Dict, Tuple, Mapping, Union, NamedTuple, Set
 import re
 
 from .peg import Clause, D, Match, MemoTable, MemoKey, Literal, nested_str, Reference
@@ -110,9 +110,9 @@ class Rule(Clause[D]):
 
     def _verify_captures(self):
         captured_names = {capture.name for capture in captures(self.sub_clauses[0])}
-        if captured_names.symmetric_difference(self.action.parameters):
-            additional = captured_names.difference(self.action.parameters)
-            missing = set(self.action.parameters) - captured_names
+        if captured_names ^ self.action.parameters:
+            additional = captured_names - self.action.parameters
+            missing = self.action.parameters - captured_names
             raise ActionCaptureError(missing=missing, extra=additional, rule=self)
 
     @property
@@ -158,12 +158,12 @@ class Action:
 
     def __init__(self, literal: str):
         self.literal = literal.strip()
-        self._py_names = tuple(match.group(2) for match in self.named.finditer(literal))
+        self._py_names = {match.group(2) for match in self.named.finditer(literal)}
         self._py_source = self._encode(self.literal)
         self._py_code = compile(self._py_source, self._py_source, "eval")
 
     @property
-    def parameters(self) -> Tuple[str, ...]:
+    def parameters(self) -> Set[str]:
         """The parameter names used by the action"""
         return self._py_names
 
