@@ -9,7 +9,6 @@ from typing import (
     Dict,
     Tuple,
     Optional,
-    NoReturn,
     Iterable,
     Set,
     List,
@@ -488,12 +487,6 @@ class And(Clause[D]):
 
 
 # Grammar Definitions
-class UnboundReference(LookupError):
-    def __init__(self, target: str):
-        self.target = target
-        super().__init__(f"Reference {target!r} not bound in a grammar/parser")
-
-
 def safe_recurse(default=False):
     def decorator(method):
         repr_running = set()
@@ -530,16 +523,13 @@ class Reference(Clause[D]):
     @safe_recurse(default=False)
     def maybe_zero(self):
         if self._maybe_zero is None:
-            if self._sub_clause is None:
-                self._virtual_clause_()
-            else:
-                self._maybe_zero = self._sub_clause.maybe_zero
+            assert self._sub_clause is not None, f"{self} must be bound in a grammar"
+            self._maybe_zero = self._sub_clause.maybe_zero
         return self._maybe_zero
 
     @property
     def sub_clauses(self):
-        if self._sub_clause is None:
-            self._virtual_clause_()
+        assert self._sub_clause is not None, f"{self} must be bound in a grammar"
         return (self._sub_clause,)
 
     def match(self, source: D, at: int, memo: MemoTable) -> Optional[Match]:
@@ -555,9 +545,6 @@ class Reference(Clause[D]):
             assert self._sub_clause is None
             self._sub_clause = clauses[self.target].bind(clauses, canonicals)
         return canonicals[self]
-
-    def _virtual_clause_(self) -> NoReturn:
-        raise UnboundReference(self.target)
 
     def __eq__(self, other):
         return isinstance(other, Reference) and self.target == other.target
