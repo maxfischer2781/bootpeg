@@ -15,7 +15,12 @@ def mono(ascii: str) -> str:
 
 
 def cache_hash(__hash__):
-    """Cache the ``__hash__`` of an object to a ``_hash`` attribute"""
+    """
+    Cache the ``__hash__`` of an object to a ``_hash`` attribute
+
+    Applied as a decorator to the ``__hash__`` method of a class.
+    Instances must have a writeable ``_hash`` attribute that is *not* initialised.
+    """
 
     @wraps(__hash__)
     def cached_hash(self):
@@ -34,6 +39,7 @@ def safe_recurse(default=False):
 
     This function is *not* threadsafe.
     """
+
     def decorator(method):
         repr_running = set()
 
