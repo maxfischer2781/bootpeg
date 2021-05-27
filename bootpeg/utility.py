@@ -26,3 +26,28 @@ def cache_hash(__hash__):
             return _hash
 
     return cached_hash
+
+
+def safe_recurse(default=False):
+    """
+    Mark a function/method as recursion-safe, returning ``default`` on recursion
+
+    This function is *not* threadsafe.
+    """
+    def decorator(method):
+        repr_running = set()
+
+        @wraps(method)
+        def wrapper(self):
+            if self in repr_running:
+                return default
+            repr_running.add(self)
+            try:
+                result = method(self)
+            finally:
+                repr_running.remove(self)
+            return result
+
+        return wrapper
+
+    return decorator

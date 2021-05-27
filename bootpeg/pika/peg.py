@@ -15,10 +15,9 @@ from typing import (
 )
 import copy
 import heapq
-import functools
 
 from ..typing import D
-from ..utility import cache_hash
+from ..utility import cache_hash, safe_recurse
 
 
 # Ascending memoization
@@ -487,26 +486,6 @@ class And(Clause[D]):
 
 
 # Grammar Definitions
-def safe_recurse(default=False):
-    def decorator(method):
-        repr_running = set()
-
-        @functools.wraps(method)
-        def wrapper(self):
-            if self in repr_running:
-                return default
-            repr_running.add(self)
-            try:
-                result = method(self)
-            finally:
-                repr_running.remove(self)
-            return result
-
-        return wrapper
-
-    return decorator
-
-
 class Reference(Clause[D]):
     """
     Placeholder for another named clause, matching if the target matches
