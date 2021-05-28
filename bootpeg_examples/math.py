@@ -91,9 +91,8 @@ def div(lhs: Rational, rhs: Rational):
 # the grammar treats them as the unary negation of *positive* numbers.
 def parse_decimal(literal: str) -> Rational:
     """Parse a literal decimal, such as ``12.3``"""
+    assert '.' in literal
     dot_index = literal.find(".")
-    if dot_index == -1:
-        return Rational(False, int(literal), 1)
     numerator = int(literal[:dot_index] + literal[dot_index + 1 :])
     return fraction(numerator, 10 ** (len(literal) - dot_index - 1))
 
