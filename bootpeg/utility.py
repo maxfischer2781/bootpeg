@@ -1,3 +1,4 @@
+from typing import Tuple
 from functools import wraps
 
 ascii_escapes = str.maketrans(
@@ -57,3 +58,16 @@ def safe_recurse(default=False):
         return wrapper
 
     return decorator
+
+
+def grammar_resource(location: str) -> Tuple[str, str]:
+    """
+    Given a module-like location, return the package and resource of a grammar
+
+    :param location: a module-like location, such as ``"bootpeg.grammar.peg"``
+    :return: a package and resource, such as ``"bootpeg.grammar", "peg.bpeg"``
+    """
+    if location == "__main__":
+        location = __import__("__main__").__spec__.name
+    package, _, name = location.rpartition(".")
+    return package, f"{name}.bpeg"

@@ -3,6 +3,7 @@ from functools import partial
 
 import importlib_resources
 
+from .utility import grammar_resource
 from .pika.peg import Parser, Clause
 from .pika.act import transform
 from .pika.boot import namespace as pika_namespace
@@ -72,15 +73,15 @@ def import_parser(
     :param kwargs: any keyword arguments for the `dialect`'s post processing
 
     The `location` is a dotted module name; it is used to look up the grammar using the
-    import machinery. Grammar resources have the extension ``.bpeg`` instead of ``.py``.
+    resource import machinery.
+    Grammar resources have the extension ``.bpeg`` instead of ``.py``.
 
     For example, the location ``"bootpeg.grammars.peg"`` looks for a resource named
     ``peg.bpeg`` in the module ``bootpeg.grammars``. Commonly, this means the file
     ``bootpeg/grammars/peg.bpeg``, though the import machinery also supports other
     resource types such as zip archive members.
     """
-    package, _, name = location.rpartition(".")
-    source = importlib_resources.read_text(package, name + ".bpeg")
+    source = importlib_resources.read_text(*grammar_resource(location))
     dialect = dialect if not hasattr(dialect, "parse") else dialect.parse
     parser = dialect(source, **kwargs)
     return partial(parse, parser=parser, actions=actions, post=post)
