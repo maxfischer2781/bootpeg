@@ -115,5 +115,6 @@ This allows the rule to expand in the respective direction.
     Use choice ordering for precedence, and
     left-/right-recursion for left-/right-associativity.
 
-.. [#pika] Such use of left-recursion is only possible due to `bootpeg`'s
-           :term:`Pika Parser`. Regular PEG parsers do not support such grammars/rules.
+.. [#pika] This use of left-recursion is only possible with left-recursive PEG parsers,
+           like `bootpeg`'s :term:`Pika Parser`.
+           Regular PEG parsers do not support such grammars/rules and require rewriting.
