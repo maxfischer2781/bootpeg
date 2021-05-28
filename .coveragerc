@@ -2,8 +2,8 @@
 source =
     bootpeg
     tests
+    bootpeg_examples
 branch = True
-parallel = True
 
 [report]
 show_missing = True
