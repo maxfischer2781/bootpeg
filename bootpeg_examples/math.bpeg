@@ -27,8 +27,8 @@ group:
 
 # This is a precedence climbing grammar using left-recursion for left-associative rules
 add_sub:
-    | lhs=add_sub spacing '+' ~ spacing rhs=mul_div { add(.lhs, .rhs) }
-    | lhs=add_sub spacing '-' ~ spacing rhs=mul_div { sub(.lhs, .rhs) }
+    | lhs=add_sub spacing '+' ~ spacing rhs=add_sub { add(.lhs, .rhs) }
+    | lhs=add_sub spacing '-' ~ spacing rhs=add_sub { sub(.lhs, .rhs) }
     | prec=mul_div { .prec }
 mul_div:
     | lhs=mul_div spacing '*' ~ spacing rhs=mul_div { mul(.lhs, .rhs) }

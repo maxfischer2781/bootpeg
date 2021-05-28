@@ -78,7 +78,9 @@ def mul(lhs: Rational, rhs: Rational):
     numerator = lhs.numerator * rhs.numerator
     denominator = lhs.denominator * rhs.denominator
     divisor = gcd(numerator, denominator)
-    return Rational(lhs.sign ^ rhs.sign, numerator // divisor, denominator // divisor)
+    return Rational(
+        lhs.negative ^ rhs.negative, numerator // divisor, denominator // divisor
+    )
 
 
 def div(lhs: Rational, rhs: Rational):
@@ -91,7 +93,7 @@ def div(lhs: Rational, rhs: Rational):
 # the grammar treats them as the unary negation of *positive* numbers.
 def parse_decimal(literal: str) -> Rational:
     """Parse a literal decimal, such as ``12.3``"""
-    assert '.' in literal
+    assert "." in literal
     dot_index = literal.find(".")
     numerator = int(literal[:dot_index] + literal[dot_index + 1 :])
     return fraction(numerator, 10 ** (len(literal) - dot_index - 1))

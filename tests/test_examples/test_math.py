@@ -25,7 +25,7 @@ math_expressions = [
     ("3/-4", math.Rational(True, 3, 4)),
     ("-3/-4", math.Rational(False, 3, 4)),
     ("3.5 * -2", math.Rational(True, 7, 1)),
-    ("12.5 + 3.5 - 2")
+    ("12.5 + 3.5 - 2", math.Rational(False, 14, 1)),
 ]
 
 
