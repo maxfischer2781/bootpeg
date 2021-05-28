@@ -3,7 +3,7 @@ source =
     bootpeg
     tests
 branch = True
-parallel = False
+parallel = True
 
 [report]
 show_missing = True
