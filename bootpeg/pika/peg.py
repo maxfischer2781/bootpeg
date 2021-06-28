@@ -9,17 +9,15 @@ from typing import (
     Dict,
     Tuple,
     Optional,
-    NoReturn,
     Iterable,
     Set,
     List,
 )
 import copy
 import heapq
-import functools
 
 from ..typing import D
-from ..utility import cache_hash
+from ..utility import cache_hash, safe_recurse
 
 
 # Ascending memoization
@@ -71,7 +69,7 @@ class MemoTable(Generic[D]):
             elif item.clause.maybe_zero:
                 match = self.matches[item] = Match(0, (), item.position, item.clause)
                 return match
-            raise  # if you see this, the priorities are wrong. Please open a ticket!
+            raise  # If you see this, the priorities are wrong. Please open a ticket!
 
     def insert(self, item: MemoKey, match: Match) -> bool:
         """
@@ -203,7 +201,7 @@ class Anything(Terminal[D]):
         self.length = length
 
     def match(self, source: D, at: int, memo: MemoTable):
-        if at + self.length < len(source):
+        if at + self.length <= len(source):
             return Match(self.length, (), at, self)
         return None
 
@@ -330,7 +328,7 @@ class Choice(Clause[D]):
                 pass
             else:
                 return Match(sub_match.length, (sub_match,), at, self, index)
-        return None
+        assert False, "Choice can only trigger if any sub_clause matched"
 
     def __eq__(self, other):
         return isinstance(other, Choice) and self.sub_clauses == other.sub_clauses
@@ -370,10 +368,7 @@ class Repeat(Clause[D]):
         self._sub_clause = sub_clause
 
     def match(self, source: D, at: int, memo: MemoTable):
-        try:
-            sub_match = memo[MemoKey(at, self._sub_clause)]
-        except KeyError:
-            return None
+        sub_match = memo[MemoKey(at, self._sub_clause)]
         if sub_match.length == 0:
             return Match(sub_match.length, (sub_match,), at, self)
         # check if there was a previous match by us at the next position
@@ -491,32 +486,6 @@ class And(Clause[D]):
 
 
 # Grammar Definitions
-class UnboundReference(LookupError):
-    def __init__(self, target: str):
-        self.target = target
-        super().__init__(f"Reference {target!r} not bound in a grammar/parser")
-
-
-def safe_recurse(default=False):
-    def decorator(method):
-        repr_running = set()
-
-        @functools.wraps(method)
-        def wrapper(self):
-            if self in repr_running:
-                return default
-            repr_running.add(self)
-            try:
-                result = method(self)
-            finally:
-                repr_running.remove(self)
-            return result
-
-        return wrapper
-
-    return decorator
-
-
 class Reference(Clause[D]):
     """
     Placeholder for another named clause, matching if the target matches
@@ -533,25 +502,18 @@ class Reference(Clause[D]):
     @safe_recurse(default=False)
     def maybe_zero(self):
         if self._maybe_zero is None:
-            if self._sub_clause is None:
-                self._virtual_clause_()
-            else:
-                self._maybe_zero = self._sub_clause.maybe_zero
+            assert self._sub_clause is not None, f"{self} must be bound in a grammar"
+            self._maybe_zero = self._sub_clause.maybe_zero
         return self._maybe_zero
 
     @property
     def sub_clauses(self):
-        if self._sub_clause is None:
-            self._virtual_clause_()
+        assert self._sub_clause is not None, f"{self} must be bound in a grammar"
         return (self._sub_clause,)
 
     def match(self, source: D, at: int, memo: MemoTable) -> Optional[Match]:
-        try:
-            sub_match = memo[MemoKey(at, self._sub_clause)]
-        except KeyError:
-            raise
-        else:
-            return Match(sub_match.length, (sub_match,), at, self)
+        sub_match = memo[MemoKey(at, self._sub_clause)]
+        return Match(sub_match.length, (sub_match,), at, self)
 
     def bind(
         self, clauses: "Dict[str, Clause[D]]", canonicals: "Dict[Clause[D], Clause[D]]"
@@ -562,9 +524,6 @@ class Reference(Clause[D]):
             assert self._sub_clause is None
             self._sub_clause = clauses[self.target].bind(clauses, canonicals)
         return canonicals[self]
-
-    def _virtual_clause_(self) -> NoReturn:
-        raise UnboundReference(self.target)
 
     def __eq__(self, other):
         return isinstance(other, Reference) and self.target == other.target

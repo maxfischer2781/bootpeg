@@ -1,0 +1,44 @@
+# bootpeg grammar for emulating Rational math via Integer math
+# ############################################################
+# The grammar consists of three categories of rules:
+# - syntax padding: `spacing`
+#   Makes the grammar more friendly to humans,
+#   but does not capture any relevant input.
+# - head terminals: `number`, `negation`, `group`
+#   Rules that start with a literal,
+#   ensuring that parsing "advances" through the input.
+# - binary operations: `add_sub`, `mul_div`
+#   Rules composing several other rules,
+#   adding logical structure such as precedence and associativity.
+# The `top` rule always is the entry point for parsing:
+# it is applied to the entire input, delegating to other rules to match and structure.
+
+# whitespace is explicit in bootpeg
+spacing:
+    | ' '*
+
+number:
+    | "1" - "9" ("0" - "9")* "." ~ "1" - "9" ("0" - "9")* { decimal(.*) }
+    | "1" - "9" ("0" - "9")* { integer(.*) }
+negation:
+    | "-" ~ spacing expr=top { neg(.expr) }
+group:
+    | '(' ~ spacing exp=top spacing ')' { .exp }
+
+# This is a precedence climbing grammar using left-recursion for left-associative rules
+add_sub:
+    | lhs=add_sub spacing '+' ~ spacing rhs=mul_div { add(.lhs, .rhs) }
+    | lhs=add_sub spacing '-' ~ spacing rhs=mul_div { sub(.lhs, .rhs) }
+    | prec=mul_div { .prec }
+mul_div:
+    | lhs=mul_div spacing '*' ~ spacing rhs=terminal { mul(.lhs, .rhs) }
+    | lhs=mul_div spacing '/' ~ spacing rhs=terminal { div(.lhs, .rhs) }
+    | prec=terminal { .prec }
+terminal:
+    | number
+    | negation
+    | group
+
+# the top-rule is
+top:
+    | add_sub spacing
