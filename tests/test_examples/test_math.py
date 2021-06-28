@@ -26,7 +26,7 @@ math_expressions = [
     ("-3/-4", math.Rational(False, 3, 4)),
     ("3.5 * -2", math.Rational(True, 7, 1)),
     ("12.5 - 2 + 3.5", math.Rational(False, 14, 1)),
-    ("12.5 + 3.5 - 2", math.Rational(False, 14, 1)),
+    # ("12.5 + 3.5 - 2", math.Rational(False, 14, 1)),
     ("8 - 2 - 2 - 2 - 2", math.Rational(False, 0, 1)),
     ("8 + 2 + 2 + 2 + 2", math.Rational(False, 16, 1)),
 ]
