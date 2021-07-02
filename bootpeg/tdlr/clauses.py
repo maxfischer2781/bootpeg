@@ -1,10 +1,13 @@
 """
 Abstract clauses understood by the PikaTwo parsing algorithm
 """
-from typing import Generic
+from typing import Generic, Union
 
 from ..typing import D
 from ..utility import slotted
+
+
+Clauses = Union["Value", "Empty", "Any", "Sequence", "Choice", "Repeat", "Not", "And", "Annotate", "Reference"]
 
 
 @slotted
@@ -38,7 +41,7 @@ class Sequence(Generic[D]):
 
     __slots__ = ('sub_clauses',)
 
-    def __init__(self, *sub_clauses: D):
+    def __init__(self, *sub_clauses: "Clauses[D]"):
         self.sub_clauses = sub_clauses
 
 
@@ -48,7 +51,7 @@ class Choice(Generic[D]):
 
     __slots__ = ('sub_clauses',)
 
-    def __init__(self, *sub_clauses: D):
+    def __init__(self, *sub_clauses: "Clauses[D]"):
         self.sub_clauses = sub_clauses
 
 
@@ -58,7 +61,7 @@ class Repeat(Generic[D]):
 
     __slots__ = ('sub_clause',)
 
-    def __init__(self, sub_clause: D):
+    def __init__(self, sub_clause: "Clauses[D]"):
         self.sub_clause = sub_clause
 
 
@@ -68,7 +71,7 @@ class Not(Generic[D]):
 
     __slots__ = ('sub_clause',)
 
-    def __init__(self, sub_clause: D):
+    def __init__(self, sub_clause: "Clauses[D]"):
         self.sub_clause = sub_clause
 
 
@@ -78,7 +81,7 @@ class And(Generic[D]):
 
     __slots__ = ('sub_clause',)
 
-    def __init__(self, sub_clause: D):
+    def __init__(self, sub_clause: "Clauses[D]"):
         self.sub_clause = sub_clause
 
 
@@ -88,7 +91,7 @@ class Annotate(Generic[D]):
 
     __slots__ = ('sub_clause', 'metadata')
 
-    def __init__(self, sub_clause: D, metadata):
+    def __init__(self, sub_clause: "Clauses[D]", metadata):
         self.sub_clause = sub_clause
         self.metadata = metadata
 
@@ -109,6 +112,6 @@ class Rule(Generic[D]):
 
     __slots__ = ("name", "sub_clause")
 
-    def __init__(self, name: str, sub_clause: D):
+    def __init__(self, name: str, sub_clause: "Clauses[D]"):
         self.name = name
         self.sub_clause = sub_clause
