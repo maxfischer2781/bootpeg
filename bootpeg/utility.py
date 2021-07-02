@@ -101,7 +101,7 @@ def slotted(cls: Type[T]) -> Type[T]:
 
     def __hash__(self: T) -> int:
         return hash(
-            (*(getattr(self, name) for name in slots), hash(self))
+            (*(getattr(self, name) for name in slots), hash(type(self)))
         )
 
     cls.__repr__ = __repr__
