@@ -1,20 +1,45 @@
 """
 Matching of clauses based on interpretation
 """
-from typing import Mapping, MutableMapping, Tuple, Any as AnyT, NamedTuple, Union, Optional, Generic, Dict
+from typing import (
+    Mapping,
+    MutableMapping,
+    Tuple,
+    Any as AnyT,
+    NamedTuple,
+    Union,
+    Optional,
+    Generic,
+    Dict,
+)
 from typing_extensions import Protocol
 
 from functools import singledispatch
 
-from .clauses import Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Capture, Transform, Reference, Rule
+from .clauses import (
+    Value,
+    Empty,
+    Any,
+    Sequence,
+    Choice,
+    Repeat,
+    Not,
+    And,
+    Capture,
+    Transform,
+    Reference,
+    Rule,
+)
 from ..typing import D
 
 
-Clause = Union[Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Capture, Transform, Reference]
+Clause = Union[
+    Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Capture, Transform, Reference
+]
 
 
 class MatchFailure(Exception):
-    __slots__ = ('at', 'expected')
+    __slots__ = ("at", "expected")
 
     def __init__(self, at: int, expected: Clause):
         self.at = at
@@ -68,7 +93,7 @@ def _(clause: Value[D]) -> MatchClause[D]:
     length = len(value)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        if of[at: at + length] == value:
+        if of[at : at + length] == value:
             return at + length, Match(at, length)
         raise MatchFailure(at, clause)
 
@@ -77,7 +102,6 @@ def _(clause: Value[D]) -> MatchClause[D]:
 
 @match_clause.register(Empty)
 def _(clause: Empty[D]) -> MatchClause[D]:
-
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         return at, Match(at, 0)
 
@@ -111,7 +135,9 @@ def _(clause: Sequence[D]) -> MatchClause[D]:
 
 @match_clause.register(Choice)
 def _(clause: Choice[D]) -> MatchClause[D]:
-    match_sub_clauses = tuple(match_clause(sub_clause) for sub_clause in clause.sub_clauses)
+    match_sub_clauses = tuple(
+        match_clause(sub_clause) for sub_clause in clause.sub_clauses
+    )
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         for match_sub_clause in match_sub_clauses:
@@ -180,7 +206,9 @@ def _(clause: Capture[D]) -> MatchClause[D]:
         if variadic:
             return at, Match(match.at, match.length, captures=((name, results),))
         elif not match.results:
-            return at, Match(match.at, match.length, captures=((name, of[match.at:match.end]),))
+            return at, Match(
+                match.at, match.length, captures=((name, of[match.at : match.end]),)
+            )
         elif len(results) == 1:
             return at, Match(match.at, match.length, captures=((name, results[0]),))
         else:
@@ -241,6 +269,4 @@ class Parser(Generic[D]):
         }
 
     def match(self, source: D) -> Match:
-        return self._match_top(
-            of=source, at=0, memo={}, rules=self._match_rules
-        )[-1]
+        return self._match_top(of=source, at=0, memo={}, rules=self._match_rules)[-1]
