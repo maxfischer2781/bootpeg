@@ -86,14 +86,26 @@ class And(Generic[D]):
 
 
 @slotted
-class Annotate(Generic[D]):
-    """A clause annotating a match with some metadata"""
+class Capture(Generic[D]):
+    """The capturing of a clause match result with a name"""
 
-    __slots__ = ('sub_clause', 'metadata')
+    __slots__ = ('sub_clause', 'name', 'variadic')
 
-    def __init__(self, sub_clause: "Clauses[D]", metadata):
+    def __init__(self, sub_clause: "Clauses[D]", name, variadic):
         self.sub_clause = sub_clause
-        self.metadata = metadata
+        self.name = name
+        self.variadic = variadic
+
+
+@slotted
+class Transform(Generic[D]):
+    """The transformation of a clause match result"""
+
+    __slots__ = ('sub_clause', 'py_call')
+
+    def __init__(self, sub_clause: "Clauses[D]", py_call):
+        self.sub_clause = sub_clause
+        self.py_call = py_call
 
 
 @slotted

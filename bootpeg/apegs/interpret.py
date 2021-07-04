@@ -1,31 +1,31 @@
 """
 Matching of clauses based on interpretation
 """
-from typing import Mapping, MutableMapping, Tuple, Any as AnyT, NamedTuple, Union, Optional
+from typing import Mapping, MutableMapping, Tuple, Any as AnyT, NamedTuple, Union, Optional, Generic, Dict
 from typing_extensions import Protocol
 
 from functools import singledispatch
 
-from .clauses import Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Annotate, Reference
+from .clauses import Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Capture, Transform, Reference, Rule
 from ..typing import D
 
 
-Clause = Union[Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Annotate, Reference]
+Clause = Union[Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Capture, Transform, Reference]
 
 
 class MatchFailure(Exception):
     __slots__ = ('at', 'expected')
 
-    def __init__(self, at, expected):
+    def __init__(self, at: int, expected: Clause):
         self.at = at
         self.expected = expected
 
 
 class Match(NamedTuple):
     at: int
-    length: int
-    sub_matches: "Tuple[Match, ...]"
-    annotation: Optional[AnyT]
+    length: int = 0
+    results: Tuple[AnyT, ...] = ()
+    captures: Tuple[Tuple[str, AnyT], ...] = ()
 
     @property
     def end(self):
@@ -36,35 +36,15 @@ class Match(NamedTuple):
         assert (
             self.end == other.at
         ), f"not adjacent: {self.at + self.length} vs {other.at} ({self} vs {other})"
-        if self.annotation is other.annotation is None:
-            return self._replace(
-                length=self.length + other.length,
-                sub_matches=self.sub_matches + other.sub_matches,
-            )
-        elif self.annotation is None:
-            return self._replace(
-                length=self.length + other.length,
-                sub_matches=(*self.sub_matches, other),
-            )
-        elif other.annotation is None:
-            return other._replace(
-                at=self.at,
-                length=self.length + other.length,
-                sub_matches=(self, *other.sub_matches),
-            )
-        else:
-            return self._replace(
-                length=self.length + other.length,
-                sub_matches=(self, other),
-                annotation=None,
-            )
+        return Match(
+            at=self.at,
+            length=self.length + other.length,
+            results=self.results + other.results,
+            captures=self.captures + other.captures,
+        )
 
     def copy(self) -> "Match":
         return Match(*self)
-
-    @classmethod
-    def plain(cls, at: int, length: int):
-        return cls(at, length, (), None)
 
 
 Memo = MutableMapping[Tuple[int, str], Optional[Match]]
@@ -89,7 +69,7 @@ def _(clause: Value[D]) -> MatchClause[D]:
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         if of[at: at + length] == value:
-            return at + length, Match.plain(at, length)
+            return at + length, Match(at, length)
         raise MatchFailure(at, clause)
 
     return do_match
@@ -99,7 +79,7 @@ def _(clause: Value[D]) -> MatchClause[D]:
 def _(clause: Empty[D]) -> MatchClause[D]:
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        return at, Match.plain(at, 0)
+        return at, Match(at, 0)
 
     return do_match
 
@@ -110,7 +90,7 @@ def _(clause: Any[D]) -> MatchClause[D]:
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         if at + length >= len(of):
-            return at + length, Match.plain(at, length)
+            return at + length, Match(at, length)
         raise MatchFailure(at, clause)
 
     return do_match
@@ -131,12 +111,12 @@ def _(clause: Sequence[D]) -> MatchClause[D]:
 
 @match_clause.register(Choice)
 def _(clause: Choice[D]) -> MatchClause[D]:
-    sub_matches = tuple(match_clause(sub_clause) for sub_clause in clause.sub_clauses)
+    match_sub_clauses = tuple(match_clause(sub_clause) for sub_clause in clause.sub_clauses)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        for sub_match in sub_matches:
+        for match_sub_clause in match_sub_clauses:
             try:
-                return sub_match(of, at, memo, rules)
+                return match_sub_clause(of, at, memo, rules)
             except MatchFailure:
                 pass
         raise MatchFailure(at, clause)
@@ -146,14 +126,14 @@ def _(clause: Choice[D]) -> MatchClause[D]:
 
 @match_clause.register(Repeat)
 def _(clause: Repeat[D]) -> MatchClause[D]:
-    sub_match = match_clause(clause.sub_clause)
+    match_sub_clause = match_clause(clause.sub_clause)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        new_at, match = sub_match(of, at, memo, rules)
+        new_at, match = match_sub_clause(of, at, memo, rules)
         while at < new_at < len(of):
             at = new_at
             try:
-                new_at, new_match = sub_match(of, at, memo, rules)
+                new_at, new_match = match_sub_clause(of, at, memo, rules)
                 match += new_match
             except MatchFailure:
                 break
@@ -164,13 +144,13 @@ def _(clause: Repeat[D]) -> MatchClause[D]:
 
 @match_clause.register(Not)
 def _(clause: Not[D]) -> MatchClause[D]:
-    sub_match = match_clause(clause.sub_clause)
+    match_sub_clause = match_clause(clause.sub_clause)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         try:
-            sub_match(of, at, memo, rules)
+            match_sub_clause(of, at, memo, rules)
         except MatchFailure:
-            return at, Match.plain(at, 0)
+            return at, Match(at, 0)
         else:
             raise MatchFailure(at, clause)
 
@@ -179,26 +159,45 @@ def _(clause: Not[D]) -> MatchClause[D]:
 
 @match_clause.register(And)
 def _(clause: And[D]) -> MatchClause[D]:
-    sub_match = match_clause(clause.sub_clause)
+    match_sub_clause = match_clause(clause.sub_clause)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        sub_match(of, at, memo, rules)
-        return at, Match.plain(at, 0)
+        match_sub_clause(of, at, memo, rules)
+        return at, Match(at, 0)
 
     return do_match
 
 
-@match_clause.register(Annotate)
-def _(clause: Annotate[D]) -> MatchClause[D]:
-    sub_match = match_clause(clause.sub_clause)
-    metadata = clause.metadata
+@match_clause.register(Capture)
+def _(clause: Capture[D]) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause)
+    name = clause.name
+    variadic = clause.variadic
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        at, match = sub_match(of, at, memo, rules)
-        if match.annotation is None:
-            return at, match._replace(annotation=metadata)
+        at, match = match_sub_clause(of, at, memo, rules)
+        results = match.results
+        if variadic:
+            return at, Match(match.at, match.length, captures=((name, results),))
+        elif not match.results:
+            return at, Match(match.at, match.length, captures=((name, of[match.at:match.end]),))
+        elif len(results) == 1:
+            return at, Match(match.at, match.length, captures=((name, results[0]),))
         else:
-            return at, match._replace(sub_matches=match, annotation=metadata)
+            raise MatchFailure(at, clause)
+
+    return do_match
+
+
+@match_clause.register(Transform)
+def _(clause: Transform[D]) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause)
+    py_call = clause.py_call
+
+    def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
+        at, match = match_sub_clause(of, at, memo, rules)
+        result = py_call(**dict(match.captures))
+        return at, Match(match.at, match.length, results=(result,))
 
     return do_match
 
@@ -230,3 +229,18 @@ def _(clause: Reference[D]) -> MatchClause[D]:
                     return old_end, match
 
     return do_match
+
+
+class Parser(Generic[D]):
+    def __init__(self, top: str, *rules: Rule[D]):
+        self.top = top
+        self.rules = rules
+        self._match_top = match_clause(Reference(self.top))
+        self._match_rules: Dict[str, MatchClause] = {
+            rule.name: match_clause(rule.sub_clause) for rule in rules
+        }
+
+    def match(self, source: D) -> Match:
+        return self._match_top(
+            of=source, at=0, memo={}, rules=self._match_rules
+        )[-1]
