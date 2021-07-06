@@ -113,7 +113,7 @@ def _(clause: Any[D]) -> MatchClause[D]:
     length = clause.length
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        if at + length >= len(of):
+        if at + length <= len(of):
             return at + length, Match(at, length)
         raise MatchFailure(at, clause)
 
