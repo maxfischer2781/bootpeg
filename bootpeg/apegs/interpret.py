@@ -35,7 +35,18 @@ from ..typing import D
 
 
 Clause = Union[
-    Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Entail, Capture, Transform, Reference
+    Value,
+    Empty,
+    Any,
+    Sequence,
+    Choice,
+    Repeat,
+    Not,
+    And,
+    Entail,
+    Capture,
+    Transform,
+    Reference,
 ]
 
 
