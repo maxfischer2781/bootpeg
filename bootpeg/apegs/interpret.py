@@ -92,7 +92,7 @@ class MatchClause(Protocol[D]):
 @singledispatch
 def match_clause(clause) -> MatchClause:
     """Create a callable to match `clause`"""
-    raise NotImplementedError(f"_match_block for type({clause})")
+    raise NotImplementedError(f"match_clause for type({clause!r})")
 
 
 @match_clause.register(Value)
