@@ -25,6 +25,7 @@ from .clauses import (
     Repeat,
     Not,
     And,
+    Entail,
     Capture,
     Transform,
     Reference,
@@ -34,7 +35,7 @@ from ..typing import D
 
 
 Clause = Union[
-    Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Capture, Transform, Reference
+    Value, Empty, Any, Sequence, Choice, Repeat, Not, And, Entail, Capture, Transform, Reference
 ]
 
 
@@ -198,6 +199,19 @@ def _(clause: And[D]) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         match_sub_clause(of, at, memo, rules)
         return at, Match(at, 0)
+
+    return do_match
+
+
+@match_clause.register(Entail)
+def _(clause: Entail[D]) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause)
+
+    def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
+        try:
+            return match_sub_clause(of, at, memo, rules)
+        except MatchFailure:
+            raise FatalMatchFailure(at, clause)
 
     return do_match
 

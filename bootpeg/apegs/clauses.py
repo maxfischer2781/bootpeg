@@ -100,6 +100,16 @@ class And(Generic[D]):
 
 
 @slotted
+class Entail(Generic[D]):
+    """Mark ``sub_clause`` as inevitable by the match so far, making failure fatal"""
+
+    __slots__ = ("sub_clause",)
+
+    def __init__(self, sub_clause: "Clauses[D]"):
+        self.sub_clause = sub_clause
+
+
+@slotted
 class Capture(Generic[D]):
     """The capturing of a clause match result with a name"""
 
