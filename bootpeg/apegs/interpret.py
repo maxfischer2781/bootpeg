@@ -46,6 +46,14 @@ class MatchFailure(Exception):
         self.expected = expected
 
 
+class FatalMatchFailure(Exception):
+    __slots__ = ("at", "expected")
+
+    def __init__(self, at: int, expected: Clause):
+        self.at = at
+        self.expected = expected
+
+
 class Match(NamedTuple):
     at: int
     length: int = 0
@@ -140,12 +148,12 @@ def _(clause: Choice[D]) -> MatchClause[D]:
     )
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        for match_sub_clause in match_sub_clauses:
+        for match_sub_clause in match_sub_clauses[:-1]:
             try:
                 return match_sub_clause(of, at, memo, rules)
             except MatchFailure:
                 pass
-        raise MatchFailure(at, clause)
+        return match_sub_clauses[-1](of, at, memo, rules)
 
     return do_match
 
@@ -224,7 +232,10 @@ def _(clause: Transform[D]) -> MatchClause[D]:
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         at, match = match_sub_clause(of, at, memo, rules)
-        result = py_call(**dict(match.captures))
+        try:
+            result = py_call(**dict(match.captures))
+        except Exception:
+            raise FatalMatchFailure(at, clause)
         return at, Match(match.at, match.length, results=(result,))
 
     return do_match
@@ -238,23 +249,29 @@ def _(clause: Reference[D]) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         try:
             child_match = memo[at, name]
-            if child_match is None:
-                raise MatchFailure(at, clause)
-            else:
-                return child_match.end, child_match
+        except (MatchFailure, FatalMatchFailure) as mf:
+            raise type(mf)(at, clause)
         except KeyError:
             # mark this Rule as unmatched ...
             match = memo[at, name] = None
             old_end = at - 1
             # ... then iteratively expand the match
             while True:
-                new_end, new_match = rules[name](of, at, memo, rules)
+                try:
+                    new_end, new_match = rules[name](of, at, memo, rules)
+                except MatchFailure:
+                    raise MatchFailure(at, clause)  # raise for rule to mark path
                 if new_end > old_end:
                     match = memo[at, name] = new_match
                     old_end = new_end
                 else:
                     assert match is not None
                     return old_end, match
+        else:
+            if child_match is None:
+                raise MatchFailure(at, clause)
+            else:
+                return child_match.end, child_match
 
     return do_match
 
