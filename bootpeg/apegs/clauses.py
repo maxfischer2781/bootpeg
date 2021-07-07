@@ -7,7 +7,7 @@ from ..typing import D
 from ..utility import slotted
 
 
-Clauses = Union[
+Clause = Union[
     "Value",
     "Empty",
     "Any",
@@ -16,7 +16,9 @@ Clauses = Union[
     "Repeat",
     "Not",
     "And",
-    "Annotate",
+    "Entail",
+    "Capture",
+    "Transform",
     "Reference",
 ]
 
@@ -55,7 +57,7 @@ class Sequence(Generic[D]):
 
     __slots__ = ("sub_clauses",)
 
-    def __init__(self, *sub_clauses: "Clauses[D]"):
+    def __init__(self, *sub_clauses: "Clause[D]"):
         self.sub_clauses = sub_clauses
 
 
@@ -65,7 +67,7 @@ class Choice(Generic[D]):
 
     __slots__ = ("sub_clauses",)
 
-    def __init__(self, *sub_clauses: "Clauses[D]"):
+    def __init__(self, *sub_clauses: "Clause[D]"):
         self.sub_clauses = sub_clauses
 
 
@@ -75,7 +77,7 @@ class Repeat(Generic[D]):
 
     __slots__ = ("sub_clause",)
 
-    def __init__(self, sub_clause: "Clauses[D]"):
+    def __init__(self, sub_clause: "Clause[D]"):
         self.sub_clause = sub_clause
 
 
@@ -85,7 +87,7 @@ class Not(Generic[D]):
 
     __slots__ = ("sub_clause",)
 
-    def __init__(self, sub_clause: "Clauses[D]"):
+    def __init__(self, sub_clause: "Clause[D]"):
         self.sub_clause = sub_clause
 
 
@@ -95,7 +97,7 @@ class And(Generic[D]):
 
     __slots__ = ("sub_clause",)
 
-    def __init__(self, sub_clause: "Clauses[D]"):
+    def __init__(self, sub_clause: "Clause[D]"):
         self.sub_clause = sub_clause
 
 
@@ -105,7 +107,7 @@ class Entail(Generic[D]):
 
     __slots__ = ("sub_clause",)
 
-    def __init__(self, sub_clause: "Clauses[D]"):
+    def __init__(self, sub_clause: "Clause[D]"):
         self.sub_clause = sub_clause
 
 
@@ -115,7 +117,7 @@ class Capture(Generic[D]):
 
     __slots__ = ("sub_clause", "name", "variadic")
 
-    def __init__(self, sub_clause: "Clauses[D]", name, variadic):
+    def __init__(self, sub_clause: "Clause[D]", name, variadic):
         self.sub_clause = sub_clause
         self.name = name
         self.variadic = variadic
@@ -127,7 +129,7 @@ class Transform(Generic[D]):
 
     __slots__ = ("sub_clause", "py_call")
 
-    def __init__(self, sub_clause: "Clauses[D]", py_call):
+    def __init__(self, sub_clause: "Clause[D]", py_call):
         self.sub_clause = sub_clause
         self.py_call = py_call
 
@@ -148,6 +150,6 @@ class Rule(Generic[D]):
 
     __slots__ = ("name", "sub_clause")
 
-    def __init__(self, name: str, sub_clause: "Clauses[D]"):
+    def __init__(self, name: str, sub_clause: "Clause[D]"):
         self.name = name
         self.sub_clause = sub_clause
