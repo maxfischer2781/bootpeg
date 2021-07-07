@@ -103,9 +103,7 @@ min_parser = Parser(
         "prefix",
         Choice(
             apply(lambda expr: Not(expr), _=Value("!"), expr=Reference("prefix")),
-            Sequence(
-                Value("("), spaces, Reference("expr"), spaces, Value(")")
-            ),
+            Sequence(Value("("), spaces, Reference("expr"), spaces, Value(")")),
             apply(
                 lambda expr: Choice(expr, Empty()),
                 expr=Sequence(
@@ -132,7 +130,8 @@ min_parser = Parser(
             apply(lambda expr: Repeat(expr), expr=Reference("prefix"), _=Value("+")),
             apply(
                 lambda expr: Choice(Repeat(expr), Empty()),
-                expr=Reference("prefix"), _=Value("*")
+                expr=Reference("prefix"),
+                _=Value("*"),
             ),
             Reference("prefix"),
         ),
