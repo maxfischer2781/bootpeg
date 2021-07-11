@@ -34,6 +34,18 @@ class Value(Generic[D]):
 
 
 @slotted
+class Range(Generic[D]):
+    """A terminal clause, matching an inclusive range of predefined values"""
+
+    __slots__ = ("lower", "upper")
+
+    def __init__(self, lower: D, upper: D):
+        if len(lower) != len(upper):
+            raise Value(f"Bounds must be of same length, got {lower} and {upper}")
+        self.lower, self.upper = (lower, upper) if lower < upper else (upper, lower)
+
+
+@slotted
 class Empty(Generic[D]):
     """The zero-length terminal ε, matching everywhere in the input"""
 

@@ -21,6 +21,7 @@ from functools import singledispatch
 from ..typing import D
 from .clauses import (
     Value,
+    Range,
     Empty,
     Any,
     Sequence,
@@ -38,6 +39,7 @@ from .clauses import (
 
 Clause = Union[
     Value,
+    Range,
     Empty,
     Any,
     Sequence,
@@ -74,6 +76,7 @@ def discover_captures(clause: Clause) -> Set[str]:
 
 
 @discover_captures.register(Value)
+@discover_captures.register(Range)
 @discover_captures.register(Any)
 @discover_captures.register(Empty)
 @discover_captures.register(And)
@@ -167,6 +170,21 @@ def _(clause: Value[D], _globals: dict) -> MatchClause[D]:
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         if of[at : at + length] == value:
+            return at + length, Match(at, length)
+        raise MatchFailure(at, clause)
+
+    return do_match
+
+
+@match_clause.register(Range)
+def _(clause: Range[D], _globals: dict) -> MatchClause[D]:
+    lower = clause.lower
+    upper = clause.upper
+    length = len(lower)
+
+    def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
+        candidate = of[at : at + length]
+        if len(candidate) == length and lower <= candidate <= upper:
             return at + length, Match(at, length)
         raise MatchFailure(at, clause)
 

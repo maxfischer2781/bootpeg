@@ -6,6 +6,7 @@ import string
 
 from .clauses import (
     Value,
+    Range,
     Any,
     Empty,
     Sequence,
@@ -39,6 +40,7 @@ apegs_globals = {
     clause.__name__: clause
     for clause in (
         Value,
+        Range,
         Any,
         Empty,
         Sequence,
@@ -77,6 +79,15 @@ min_parser = Parser(
     Rule(
         "identifier", Repeat(Choice(*(Value(ch) for ch in string.ascii_letters + "_")))
     ),
+    Rule(
+        "literal",
+        Choice(
+            *(
+                Sequence(Value(quote), Repeat(neg(Value(quote))), Entail(Value(quote)))
+                for quote in ('"', "'")
+            )
+        )
+    ),
     # atomic clauses without sub-clauses
     Rule(
         "atom",
@@ -84,13 +95,14 @@ min_parser = Parser(
             Transform(Choice(Value('""'), Value("''")), "Empty()"),
             Transform(Value("."), "Any(1)"),
             apply(
+                "Range(lower[1:-1], upper[1:-1])",
+                lower=Reference("literal"),
+                _=spaces,
+                upper=Reference("literal"),
+            ),
+            apply(
                 "Value(literal[1:-1])",
-                literal=Choice(
-                    *(
-                        Sequence(Value(quote), Repeat(neg(Value(quote))), Value(quote))
-                        for quote in ('"', "'")
-                    )
-                ),
+                literal=Reference("literal")
             ),
             apply("Reference(name)", name=Reference("identifier")),
         ),
@@ -239,7 +251,9 @@ min_parser = Parser(
 bpeg_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
 fail_idx = 177
 print(
+    f"{fail_idx}:",
     repr(bpeg_path.read_text()[fail_idx-12:fail_idx]),
+    r"<S>",
     repr(bpeg_path.read_text()[fail_idx:fail_idx+12])
 )
 min_parser.match(bpeg_path.read_text())
