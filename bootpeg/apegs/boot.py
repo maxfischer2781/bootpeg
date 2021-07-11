@@ -1,7 +1,7 @@
 """
 Minimal parser required to bootstrap entire bootpeg parser
 """
-from typing import Callable
+import pathlib
 import string
 
 from .clauses import (
@@ -19,10 +19,10 @@ from .clauses import (
     Reference,
     Rule,
 )
-from .interpret import Parser, Clause
+from .interpret import Parser, Clause, Grammar
 
 
-def apply(__func: Callable, **captures) -> Transform:
+def apply(__func: str, **captures) -> Transform:
     """Helper to create a Transform and Captures from keywords"""
     return Transform(
         Sequence(
@@ -35,11 +35,7 @@ def apply(__func: Callable, **captures) -> Transform:
     )
 
 
-def apegs_action(body: str) -> Callable[..., Clause]:
-    return eval("lambda " + body, clause_globals)
-
-
-clause_globals = {
+apegs_globals = {
     clause.__name__: clause
     for clause in (
         Value,
@@ -55,14 +51,15 @@ clause_globals = {
         Transform,
         Reference,
         Rule,
-        apegs_action,
+        Grammar,
+        Parser,
     )
 }
 
 
 # derived clauses
-def neg(clause: Clause):
-    return Sequence(Not(clause), Any(1))
+def neg(*clauses: Clause):
+    return Sequence(*(Not(clause) for clause in clauses), Any(1))
 
 
 spaces = Choice(Value(" "), Empty())
@@ -84,10 +81,10 @@ min_parser = Parser(
     Rule(
         "atom",
         Choice(
-            apply(lambda: Empty(), _=Choice(Value('""'), Value("''"))),
-            apply(lambda: Any(1), _=Value(".")),
+            Transform(Choice(Value('""'), Value("''")), "Empty()"),
+            Transform(Value("."), "Any(1)"),
             apply(
-                lambda literal: Value(literal[1:-1]),
+                "Value(literal[1:-1])",
                 literal=Choice(
                     *(
                         Sequence(Value(quote), Repeat(neg(Value(quote))), Value(quote))
@@ -95,26 +92,26 @@ min_parser = Parser(
                     )
                 ),
             ),
-            apply(lambda name: Reference(name), name=Reference("identifier")),
+            apply("Reference(name)", name=Reference("identifier")),
         ),
     ),
     # clauses with unambiguous, non-zero prefix
     Rule(
         "prefix",
         Choice(
-            apply(lambda expr: Not(expr), _=Value("!"), expr=Reference("prefix")),
-            Sequence(Value("("), spaces, Reference("expr"), spaces, Value(")")),
+            apply("Not(expr)", _=Value("!"), expr=Entail(Reference("prefix"))),
+            Sequence(Value("("), spaces, Entail(Sequence(Reference("expr"), spaces, Value(")")))),
             apply(
-                lambda expr: Choice(expr, Empty()),
+                "Choice(expr, Empty())",
                 expr=Sequence(
-                    Value("("), spaces, Reference("expr"), spaces, Value(")")
+                    Value("["), spaces, Entail(Sequence(Reference("expr"), spaces, Value("]")))
                 ),
             ),
             apply(
-                lambda name, expr, variadic: Capture(expr, name, variadic),
+                "Capture(expr, name, variadic)",
                 variadic=Choice(
-                    Transform(Value("*"), lambda: True),
-                    Transform(Empty(), lambda: False),
+                    Transform(Value("*"), "True"),
+                    Transform(Empty(), "False"),
                 ),
                 name=Reference("identifier"),
                 _=Value("="),
@@ -127,11 +124,9 @@ min_parser = Parser(
     Rule(
         "repeat",
         Choice(
-            apply(lambda expr: Repeat(expr), expr=Reference("prefix"), _=Value("+")),
+            apply("Repeat(expr)", expr=Reference("prefix"), _=Value("+")),
             apply(
-                lambda expr: Choice(Repeat(expr), Empty()),
-                expr=Reference("prefix"),
-                _=Value("*"),
+                "Choice(Repeat(expr), Empty())", expr=Reference("prefix"), _=Value("*")
             ),
             Reference("prefix"),
         ),
@@ -140,19 +135,19 @@ min_parser = Parser(
         "sequence",
         Choice(
             apply(
-                lambda head, tail: Sequence(head, tail),
+                "Sequence(head, tail)",
                 head=Reference("sequence"),
                 _=spaces,
                 tail=Reference("repeat"),
             ),
             apply(
-                lambda head, tail: Sequence(head, Entail(tail)),
+                "Sequence(head, Entail(tail))",
                 head=Reference("sequence"),
                 _=Sequence(spaces, Value("~"), spaces),
                 tail=Entail(Reference("sequence")),
             ),
             apply(
-                lambda seq: Entail(seq),
+                "Entail(seq)",
                 seq=Sequence(Value("~"), spaces, Entail(Reference("sequence"))),
             ),
             Reference("repeat"),
@@ -162,10 +157,10 @@ min_parser = Parser(
         "choice",
         Choice(
             apply(
-                lambda first, otherwise: Choice(first, otherwise),
+                "Choice(first, otherwise)",
                 first=Reference("choice"),
                 _=Sequence(spaces, Value("|"), spaces),
-                otherwise=Reference("sequence"),
+                otherwise=Entail(Reference("sequence")),
             ),
             Reference("sequence"),
         ),
@@ -175,19 +170,25 @@ min_parser = Parser(
         Reference("choice"),
     ),
     Rule(
+        "action_body",
+        Repeat(
+            Choice(
+                neg(Value("{"), Value("}")),
+                Sequence(Value("{"), Reference("action_body"), Entail(Value("}")))
+            )
+        )
+    ),
+    Rule(
         "action",
         apply(
-            apegs_action,
-            _h=Value("{"),
-            body=Repeat(neg(Value("}"))),
-            _t=Value("}"),
-        ),
+            "body", _h=Value("{"), body=Reference("action_body"), _t=Entail(Value("}"))
+        )
     ),
     Rule(
         "rule_choice",
         Choice(
             apply(
-                lambda expr, action: Transform(expr, action),
+                "Transform(expr, action)",
                 _h=Value("| "),
                 expr=Reference("expr"),
                 _s=spaces,
@@ -200,29 +201,22 @@ min_parser = Parser(
         "rule_body",
         Choice(
             apply(
-                lambda first, otherwise: Choice(first, otherwise),
+                "Choice(first, otherwise)",
                 first=Reference("rule_body"),
                 otherwise=Sequence(
-                    Value("    "), Reference("rule_choice"), Value("\n")
+                    Value("    "), Reference("rule_choice"), Reference("end_line"),
                 ),
             ),
-            Sequence(Value("    "), Reference("rule_choice"), Value("\n")),
+            Sequence(Value("    "), Reference("rule_choice"), Reference("end_line")),
         ),
     ),
     Rule(
         "rule",
         apply(
-            lambda name, body: Rule(name, body),
+            "Rule(name, body)",
             name=Reference("identifier"),
-            _=Sequence(Value(":\n")),
+            _=Sequence(Value(":"), Reference("end_line")),
             body=Reference("rule_body"),
-        ),
-    ),
-    Rule(
-        "discard",
-        Choice(
-            Sequence(Value("#"), Repeat(neg(Value("\n"))), Value("\n")),
-            Value("\n"),
         ),
     ),
     Rule(
@@ -230,13 +224,22 @@ min_parser = Parser(
         Sequence(
             Transform(
                 Capture(
-                    Repeat(Choice(Reference("rule"), Reference("discard"))),
+                    Repeat(Choice(Reference("rule"), Reference("end_line"))),
                     "rules",
                     variadic=True,
                 ),
-                lambda rules: Parser("top", *rules),
+                "Grammar(\"top\", *rules)",
             ),
             Not(Any(1)),
         ),
     ),
+    **apegs_globals
 )
+
+bpeg_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
+fail_idx = 177
+print(
+    repr(bpeg_path.read_text()[fail_idx-12:fail_idx]),
+    repr(bpeg_path.read_text()[fail_idx:fail_idx+12])
+)
+min_parser.match(bpeg_path.read_text())

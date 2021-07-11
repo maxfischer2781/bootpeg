@@ -127,11 +127,11 @@ class Capture(Generic[D]):
 class Transform(Generic[D]):
     """The transformation of a clause match result"""
 
-    __slots__ = ("sub_clause", "py_call")
+    __slots__ = ("sub_clause", "action")
 
-    def __init__(self, sub_clause: "Clause[D]", py_call):
+    def __init__(self, sub_clause: "Clause[D]", action: str):
         self.sub_clause = sub_clause
-        self.py_call = py_call
+        self.action = action
 
 
 @slotted

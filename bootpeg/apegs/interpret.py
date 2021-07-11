@@ -11,11 +11,14 @@ from typing import (
     Optional,
     Generic,
     Dict,
+    Callable,
+    Set,
 )
 from typing_extensions import Protocol
 
 from functools import singledispatch
 
+from ..typing import D
 from .clauses import (
     Value,
     Empty,
@@ -31,7 +34,6 @@ from .clauses import (
     Reference,
     Rule,
 )
-from ..typing import D
 
 
 Clause = Union[
@@ -64,6 +66,57 @@ class FatalMatchFailure(Exception):
     def __init__(self, at: int, expected: Clause):
         self.at = at
         self.expected = expected
+
+
+@singledispatch
+def discover_captures(clause: Clause) -> Set[str]:
+    raise NotImplementedError(f"discover_captures for type({clause!r})")
+
+
+@discover_captures.register(Value)
+@discover_captures.register(Any)
+@discover_captures.register(Empty)
+@discover_captures.register(And)
+@discover_captures.register(Not)
+@discover_captures.register(Reference)
+@discover_captures.register(Transform)
+def _(clause) -> Set[str]:
+    return set()
+
+
+@discover_captures.register(Sequence)
+def _(clause: Sequence) -> Set[str]:
+    return set.union(*map(discover_captures, clause.sub_clauses))
+
+
+@discover_captures.register(Choice)
+def _(clause: Choice) -> Set[str]:
+    clause_captures = discover_captures(clause.sub_clauses[0])
+    for sub_clause in clause.sub_clauses[1:]:
+        unique_captures = clause_captures ^ discover_captures(sub_clause)
+        if unique_captures:
+            raise Value(
+                f"Names {', '.join(unique_captures)} not captured "
+                f"in all choices of {clause!r}"
+            )
+    return clause_captures
+
+
+@discover_captures.register(Repeat)
+@discover_captures.register(Entail)
+def _(clause: Union[Repeat, Entail]) -> Set[str]:
+    return discover_captures(clause.sub_clause)
+
+
+@discover_captures.register(Capture)
+def _(clause: Capture) -> Set[str]:
+    return {clause.name}
+
+
+def py_transform(clause: Transform, _globals: dict) -> Callable:
+    """Create a ``lambda`` to execute a transform given some globals"""
+    captures = discover_captures(clause.sub_clause)
+    return eval(f"lambda {', '.join(captures)}: {clause.action}", _globals)
 
 
 class Match(NamedTuple):
@@ -102,13 +155,13 @@ class MatchClause(Protocol[D]):
 
 
 @singledispatch
-def match_clause(clause) -> MatchClause:
+def match_clause(clause: Clause, _globals: dict) -> MatchClause:
     """Create a callable to match `clause`"""
     raise NotImplementedError(f"match_clause for type({clause!r})")
 
 
 @match_clause.register(Value)
-def _(clause: Value[D]) -> MatchClause[D]:
+def _(clause: Value[D], _globals: dict) -> MatchClause[D]:
     value = clause.value
     length = len(value)
 
@@ -121,7 +174,7 @@ def _(clause: Value[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Empty)
-def _(clause: Empty[D]) -> MatchClause[D]:
+def _(clause: Empty[D], _globals: dict) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         return at, Match(at, 0)
 
@@ -129,7 +182,7 @@ def _(clause: Empty[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Any)
-def _(clause: Any[D]) -> MatchClause[D]:
+def _(clause: Any[D], _globals: dict) -> MatchClause[D]:
     length = clause.length
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
@@ -141,8 +194,10 @@ def _(clause: Any[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Sequence)
-def _(clause: Sequence[D]) -> MatchClause[D]:
-    head_do_match, *sub_do_matches = map(match_clause, clause.sub_clauses)
+def _(clause: Sequence[D], _globals: dict) -> MatchClause[D]:
+    head_do_match, *sub_do_matches = (
+        match_clause(sub_clause, _globals) for sub_clause in clause.sub_clauses
+    )
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         at, match = head_do_match(of, at, memo, rules)
@@ -154,9 +209,9 @@ def _(clause: Sequence[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Choice)
-def _(clause: Choice[D]) -> MatchClause[D]:
+def _(clause: Choice[D], _globals: dict) -> MatchClause[D]:
     match_sub_clauses = tuple(
-        match_clause(sub_clause) for sub_clause in clause.sub_clauses
+        match_clause(sub_clause, _globals) for sub_clause in clause.sub_clauses
     )
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
@@ -171,8 +226,8 @@ def _(clause: Choice[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Repeat)
-def _(clause: Repeat[D]) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause)
+def _(clause: Repeat[D], _globals: dict) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause, _globals)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         new_at, match = match_sub_clause(of, at, memo, rules)
@@ -189,8 +244,8 @@ def _(clause: Repeat[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Not)
-def _(clause: Not[D]) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause)
+def _(clause: Not[D], _globals: dict) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause, _globals)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         try:
@@ -204,8 +259,8 @@ def _(clause: Not[D]) -> MatchClause[D]:
 
 
 @match_clause.register(And)
-def _(clause: And[D]) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause)
+def _(clause: And[D], _globals: dict) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause, _globals)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         match_sub_clause(of, at, memo, rules)
@@ -215,8 +270,8 @@ def _(clause: And[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Entail)
-def _(clause: Entail[D]) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause)
+def _(clause: Entail[D], _globals: dict) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause, _globals)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         try:
@@ -228,8 +283,8 @@ def _(clause: Entail[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Capture)
-def _(clause: Capture[D]) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause)
+def _(clause: Capture[D], _globals: dict) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause, _globals)
     name = clause.name
     variadic = clause.variadic
 
@@ -251,9 +306,9 @@ def _(clause: Capture[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Transform)
-def _(clause: Transform[D]) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause)
-    py_call = clause.py_call
+def _(clause: Transform[D], _globals: dict) -> MatchClause[D]:
+    match_sub_clause = match_clause(clause.sub_clause, _globals)
+    py_call = py_transform(clause, _globals)
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         at, match = match_sub_clause(of, at, memo, rules)
@@ -267,7 +322,7 @@ def _(clause: Transform[D]) -> MatchClause[D]:
 
 
 @match_clause.register(Reference)
-def _(clause: Reference[D]) -> MatchClause[D]:
+def _(clause: Reference[D], _globals: dict) -> MatchClause[D]:
     name = clause.name
 
     # Adapted from Medeiros et al.
@@ -302,13 +357,23 @@ def _(clause: Reference[D]) -> MatchClause[D]:
 
 
 class Parser(Generic[D]):
-    def __init__(self, top: str, *rules: Rule[D]):
+    def __init__(self, top: str, *rules: Rule[D], **_globals: AnyT):
         self.top = top
         self.rules = rules
-        self._match_top = match_clause(Reference(self.top))
+        self.globals = _globals
+        self._match_top = match_clause(Reference(self.top), _globals)
         self._match_rules: Dict[str, MatchClause] = {
-            rule.name: match_clause(rule.sub_clause) for rule in rules
+            rule.name: match_clause(rule.sub_clause, _globals) for rule in rules
         }
 
     def match(self, source: D) -> Match:
         return self._match_top(of=source, at=0, memo={}, rules=self._match_rules)[-1]
+
+
+class Grammar(Generic[D]):
+    def __init__(self, top: str, *rules: Rule[D]):
+        self.top = top
+        self.rules = rules
+
+    def parser(self, **_globals: AnyT) -> Parser:
+        return Parser(self.top, *self.rules, **_globals)
