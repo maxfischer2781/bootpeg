@@ -231,12 +231,12 @@ def _(clause: Choice[D], _globals: dict) -> MatchClause[D]:
     )
 
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
-        for match_sub_clause in match_sub_clauses[:-1]:
+        for match_sub_clause in match_sub_clauses:
             try:
                 return match_sub_clause(of, at, memo, rules)
             except MatchFailure:
                 pass
-        return match_sub_clauses[-1](of, at, memo, rules)
+        raise MatchFailure(at, clause)
 
     return do_match
 
