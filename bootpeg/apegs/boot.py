@@ -95,11 +95,12 @@ min_parser = Parser(
         Choice(
             Transform(Choice(Value('""'), Value("''")), "Empty()"),
             Transform(Value("."), "Any(1)"),
+            Transform(Value("\\n"), "Value('\\n')"),
             apply(
                 "Range(lower[1:-1], upper[1:-1])",
                 lower=Reference("literal"),
-                _=spaces,
-                upper=Reference("literal"),
+                _=Sequence(spaces, Value("-"), spaces),
+                upper=Entail(Reference("literal")),
             ),
             apply("Value(literal[1:-1])", literal=Reference("literal")),
             apply("Reference(name)", name=Reference("identifier")),
@@ -253,11 +254,4 @@ min_parser = Parser(
 )
 
 bpeg_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
-fail_idx = 177
-print(
-    f"{fail_idx}:",
-    repr(bpeg_path.read_text()[fail_idx-12:fail_idx]),
-    r"<S>",
-    repr(bpeg_path.read_text()[fail_idx:fail_idx+12])
-)
-min_parser.match(bpeg_path.read_text())
+print(min_parser.match(bpeg_path.read_text()))
