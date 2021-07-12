@@ -171,7 +171,7 @@ def _(clause: Value[D], _globals: dict) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         if of[at : at + length] == value:
             return at + length, Match(at, length)
-        raise MatchFailure(at, clause)
+        raise MatchFailure(at, clause) from None
 
     return do_match
 
@@ -186,7 +186,7 @@ def _(clause: Range[D], _globals: dict) -> MatchClause[D]:
         candidate = of[at : at + length]
         if len(candidate) == length and lower <= candidate <= upper:
             return at + length, Match(at, length)
-        raise MatchFailure(at, clause)
+        raise MatchFailure(at, clause) from None
 
     return do_match
 
@@ -206,7 +206,7 @@ def _(clause: Any[D], _globals: dict) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         if at + length <= len(of):
             return at + length, Match(at, length)
-        raise MatchFailure(at, clause)
+        raise MatchFailure(at, clause) from None
 
     return do_match
 
@@ -294,8 +294,8 @@ def _(clause: Entail[D], _globals: dict) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         try:
             return match_sub_clause(of, at, memo, rules)
-        except MatchFailure:
-            raise FatalMatchFailure(at, clause)
+        except MatchFailure as mf:
+            raise FatalMatchFailure(at, clause) from mf
 
     return do_match
 
@@ -332,8 +332,8 @@ def _(clause: Transform[D], _globals: dict) -> MatchClause[D]:
         at, match = match_sub_clause(of, at, memo, rules)
         try:
             result = py_call(**dict(match.captures))
-        except Exception:
-            raise FatalMatchFailure(at, clause)
+        except Exception as err:
+            raise FatalMatchFailure(at, clause) from err
         return at, Match(match.at, match.length, results=(result,))
 
     return do_match
@@ -347,8 +347,6 @@ def _(clause: Reference[D], _globals: dict) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
         try:
             child_match = memo[at, name]
-        except (MatchFailure, FatalMatchFailure) as mf:
-            raise type(mf)(at, clause)
         except KeyError:
             # mark this Rule as unmatched ...
             match = memo[at, name] = None
@@ -357,8 +355,8 @@ def _(clause: Reference[D], _globals: dict) -> MatchClause[D]:
             while True:
                 try:
                     new_end, new_match = rules[name](of, at, memo, rules)
-                except MatchFailure:
-                    raise MatchFailure(at, clause)  # raise for rule to mark path
+                except (MatchFailure, FatalMatchFailure) as mf:
+                    raise type(mf)(at, clause) from mf  # raise for rule to mark path
                 if new_end > old_end:
                     match = memo[at, name] = new_match
                     old_end = new_end
