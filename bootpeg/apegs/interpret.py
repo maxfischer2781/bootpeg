@@ -9,8 +9,6 @@ from typing import (
     NamedTuple,
     Union,
     Optional,
-    Generic,
-    Dict,
     Callable,
     Set,
 )
@@ -370,26 +368,3 @@ def _(clause: Reference[D], _globals: dict) -> MatchClause[D]:
                 return child_match.end, child_match
 
     return do_match
-
-
-class Parser(Generic[D]):
-    def __init__(self, top: str, *rules: Rule[D], **_globals: AnyT):
-        self.top = top
-        self.rules = rules
-        self.globals = _globals
-        self._match_top = match_clause(Reference(self.top), _globals)
-        self._match_rules: Dict[str, MatchClause] = {
-            rule.name: match_clause(rule.sub_clause, _globals) for rule in rules
-        }
-
-    def match(self, source: D) -> Match:
-        return self._match_top(of=source, at=0, memo={}, rules=self._match_rules)[-1]
-
-
-class Grammar(Generic[D]):
-    def __init__(self, top: str, *rules: Rule[D]):
-        self.top = top
-        self.rules = rules
-
-    def parser(self, **_globals: AnyT) -> Parser:
-        return Parser(self.top, *self.rules, **_globals)

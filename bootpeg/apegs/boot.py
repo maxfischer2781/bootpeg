@@ -20,7 +20,8 @@ from .clauses import (
     Reference,
     Rule,
 )
-from .interpret import Parser, Clause, Grammar
+from .interpret import Clause
+from .front import Parser, Grammar
 
 
 def apply(__func: str, **captures) -> Transform:
