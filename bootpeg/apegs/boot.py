@@ -86,7 +86,7 @@ min_parser = Parser(
                 Sequence(Value(quote), Repeat(neg(Value(quote))), Entail(Value(quote)))
                 for quote in ('"', "'")
             )
-        )
+        ),
     ),
     # atomic clauses without sub-clauses
     Rule(
@@ -100,10 +100,7 @@ min_parser = Parser(
                 _=spaces,
                 upper=Reference("literal"),
             ),
-            apply(
-                "Value(literal[1:-1])",
-                literal=Reference("literal")
-            ),
+            apply("Value(literal[1:-1])", literal=Reference("literal")),
             apply("Reference(name)", name=Reference("identifier")),
         ),
     ),
@@ -112,11 +109,17 @@ min_parser = Parser(
         "prefix",
         Choice(
             apply("Not(expr)", _=Value("!"), expr=Entail(Reference("prefix"))),
-            Sequence(Value("("), spaces, Entail(Sequence(Reference("expr"), spaces, Value(")")))),
+            Sequence(
+                Value("("),
+                spaces,
+                Entail(Sequence(Reference("expr"), spaces, Value(")"))),
+            ),
             apply(
                 "Choice(expr, Empty())",
                 expr=Sequence(
-                    Value("["), spaces, Entail(Sequence(Reference("expr"), spaces, Value("]")))
+                    Value("["),
+                    spaces,
+                    Entail(Sequence(Reference("expr"), spaces, Value("]"))),
                 ),
             ),
             apply(
@@ -186,15 +189,15 @@ min_parser = Parser(
         Repeat(
             Choice(
                 neg(Value("{"), Value("}")),
-                Sequence(Value("{"), Reference("action_body"), Entail(Value("}")))
+                Sequence(Value("{"), Reference("action_body"), Entail(Value("}"))),
             )
-        )
+        ),
     ),
     Rule(
         "action",
         apply(
             "body", _h=Value("{"), body=Reference("action_body"), _t=Entail(Value("}"))
-        )
+        ),
     ),
     Rule(
         "rule_choice",
@@ -216,7 +219,7 @@ min_parser = Parser(
                 "Choice(first, otherwise)",
                 first=Reference("rule_body"),
                 otherwise=Sequence(
-                    Value("    "), Reference("rule_choice"), Reference("end_line"),
+                    Value("    "), Reference("rule_choice"), Reference("end_line")
                 ),
             ),
             Sequence(Value("    "), Reference("rule_choice"), Reference("end_line")),
@@ -240,12 +243,12 @@ min_parser = Parser(
                     "rules",
                     variadic=True,
                 ),
-                "Grammar(\"top\", *rules)",
+                'Grammar("top", *rules)',
             ),
             Not(Any(1)),
         ),
     ),
-    **apegs_globals
+    **apegs_globals,
 )
 
 bpeg_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
