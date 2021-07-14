@@ -20,10 +20,11 @@ atom:
 
 prefix:
     | "!" spaces expr=prefix { Not(expr) }
+    | "&" spaces expr=prefix { And(expr) }
     | "(" spaces ~ expr spaces ")"
     | "[" spaces ~ expr=expr spaces "]" { Choice(expr, Empty()) }
-    | "*" ~ name=identifier "=" expr=expr { Capture(expr, name, variadic=True) }
-    | name=identifier "=" ~ expr=expr { Capture(expr, name, variadic=False) }
+    | "*" ~ name=identifier "=" expr=prefix { Capture(expr, name, variadic=True) }
+    | name=identifier "=" ~ expr=prefix { Capture(expr, name, variadic=False) }
     | atom
 
 repeat:
@@ -38,7 +39,7 @@ sequence:
     | repeat
 
 choice:
-    | head=choice space *tail=("|" ~ spaces sequence) { Choice(first, *tail) }
+    | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(first, *tail) }
     | sequence
 
 # the top expression, recursively matching all other expressions
@@ -47,17 +48,17 @@ expr:
 
 # rule and action parsing
 action_body:
-    | !"{" !"}" .
+    | (!"{" !"}" .)+
     | "{" action_body ~ "}"
 action:
     | "{" body=action_body ~ "}" { body }
 
 rule_case:
-    | expr spaces action { Transform(expr, action) }
+    | expr=expr spaces action=action { Transform(expr, action) }
     | expr
 
 rule:
-    | name=identifier ":" end_line ~cases=(" " spaces "|" spaces rule_case end_line) { Rule(name, cases) }
+    | name=identifier ":" end_line ~ *cases=(" " spaces "|" spaces rule_case end_line)+ { Rule(name, Choice(*cases)) }
     | name=identifier ":" ~ expr=rule_case { Rule(name, expr) }
 top:
-    | *rules=( rule | end_line ) !. { Grammar("top", *rules) }
+    | *rules=( rule | end_line )+ !. { Grammar("top", *rules) }
