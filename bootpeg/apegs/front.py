@@ -41,9 +41,11 @@ class ParseFailure(Exception):
 
 def walk_failures(err: AnyMatchFailure):
     yield err
-    while isinstance(err.__cause__, (MatchFailure, FatalMatchFailure)):
+    while err.__cause__ is not None:
         err = err.__cause__
         yield err
+        if not isinstance(err, (MatchFailure, FatalMatchFailure)):
+            break
 
 
 def report(source: Sequence, err: AnyMatchFailure):
@@ -61,6 +63,13 @@ def report(source: Sequence, err: AnyMatchFailure):
     raise ParseFailure(reason, source, failure.at) from cause
 
 
+def unpack(match: Match) -> Union[Tuple, Dict]:
+    if match.captures:
+        return dict(match.captures)
+    else:
+        return match.results
+
+
 class Parser(Generic[D]):
     def __init__(self, top: str, *rules: Rule[D], **_globals: AnyT):
         self.top = top
@@ -71,11 +80,13 @@ class Parser(Generic[D]):
             rule.name: match_clause(rule.sub_clause, _globals) for rule in rules
         }
 
-    def match(self, source: D) -> Match:
+    def __call__(self, source: D) -> Union[Tuple, Dict]:
         try:
-            return self._match_top(
-                of=source, at=0, memo={}, rules=self._match_rules
-            )[-1]
+            return unpack(
+                self._match_top(
+                    of=source, at=0, memo={}, rules=self._match_rules
+                )[-1]
+            )
         except (MatchFailure, FatalMatchFailure) as mf:
             raise report(source, mf)
 
