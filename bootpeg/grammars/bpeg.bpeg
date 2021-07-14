@@ -23,8 +23,6 @@ prefix:
     | "&" spaces expr=prefix { And(expr) }
     | "(" spaces ~ expr spaces ")"
     | "[" spaces ~ expr=expr spaces "]" { Choice(expr, Empty()) }
-    | "*" ~ name=identifier "=" expr=prefix { Capture(expr, name, variadic=True) }
-    | name=identifier "=" ~ expr=prefix { Capture(expr, name, variadic=False) }
     | atom
 
 repeat:
@@ -32,11 +30,16 @@ repeat:
     | expr=prefix spaces "*" { Choice(Repeat(expr), Empty()) }
     | prefix
 
-sequence:
-    | head=repeat *tail=(spaces repeat)+ { Sequence(head, *tail) }
-    | *head=(repeat spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
-    | "~" ~ spaces tail=sequence { Entail(tail) }
+capture:
+    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
+    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
     | repeat
+
+sequence:
+    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
+    | *head=(capture spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
+    | "~" ~ spaces tail=sequence { Entail(tail) }
+    | capture
 
 choice:
     | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(first, *tail) }

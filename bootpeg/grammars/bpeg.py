@@ -32,8 +32,8 @@ precedence = {
     clause: prec for prec, clauses in enumerate(
         (
             [Value, Range, Any, Empty, Reference],
-            [Not, And, Capture],
-            [Repeat],
+            [Not, And],
+            [Repeat, Capture],
             [Sequence, Entail],
             [Choice, Transform],
         )

@@ -124,20 +124,9 @@ boot_parser = Parser(
                     Entail(Sequence(Reference("expr"), spaces, Value("]"))),
                 ),
             ),
-            apply(
-                "Capture(expr, name, variadic)",
-                variadic=Choice(
-                    Transform(Value("*"), "True"),
-                    Transform(Empty(), "False"),
-                ),
-                name=Reference("identifier"),
-                _=Value("="),
-                expr=Entail(Reference("prefix")),
-            ),
             Reference("atom"),
         ),
     ),
-    # left-recursive clauses, highest precedence to lowest
     Rule(
         "repeat",
         Choice(
@@ -149,13 +138,29 @@ boot_parser = Parser(
         ),
     ),
     Rule(
+        "capture",
+        Choice(
+            apply(
+                "Capture(expr, name, variadic)",
+                variadic=Choice(
+                    Transform(Value("*"), "True"),
+                    Transform(Empty(), "False"),
+                ),
+                name=Reference("identifier"),
+                _=Value("="),
+                expr=Entail(Reference("repeat")),
+            ),
+            Reference("repeat"),
+        ),
+    ),
+    Rule(
         "sequence",
         Choice(
             apply(
                 "Sequence(head, tail)",
                 head=Reference("sequence"),
                 _=spaces,
-                tail=Reference("repeat"),
+                tail=Reference("capture"),
             ),
             apply(
                 "Sequence(head, Entail(tail))",
@@ -167,7 +172,7 @@ boot_parser = Parser(
                 "Entail(seq)",
                 seq=Sequence(Value("~"), spaces, Entail(Reference("sequence"))),
             ),
-            Reference("repeat"),
+            Reference("capture"),
         ),
     ),
     Rule(
