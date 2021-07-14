@@ -42,7 +42,7 @@ precedence = {
 
 
 def _wrapped(clause: Clause, parent: Clause) -> str:
-    return f"({unparse(clause)})" if precedence[parent] < precedence[Clause] else unparse(clause)
+    return f"({unparse(clause)})" if precedence[type(parent)] < precedence[type(clause)] else unparse(clause)
 
 
 @singledispatch
@@ -83,6 +83,11 @@ def unparse_sequence(clause: Sequence) -> str:
     )
 
 
+@unparse.register(Entail)
+def unparse_sequence(clause: Entail) -> str:
+    return f"~ {_wrapped(clause.sub_clause, clause)}"
+
+
 @unparse.register(Choice)
 def unparse_choice(clause: Choice) -> str:
     return " | ".join(
@@ -107,13 +112,22 @@ def unparse_and(clause: And) -> str:
 
 @unparse.register(Capture)
 def unparse_capture(clause: Capture) -> str:
-    return f"{clause.name}={_wrapped(clause.sub_clause, clause)}"
+    var = "*" if clause.variadic else ""
+    return f"{var}{clause.name}={_wrapped(clause.sub_clause, clause)}"
+
+
+@unparse.register(Transform)
+def unparse_capture(clause: Transform) -> str:
+    return f"{unparse(clause.sub_clause)} {{{ clause.action }}}"
 
 
 @unparse.register(Rule)
 def unparse_rule(clause: Rule) -> str:
-    cases = clause.sub_clause.sub_clauses if isinstance(clause.sub_clause, Choice) else clause.sub_clause
-    body = "\n".join(f"    | {unparse(case)}" for case in cases)
+    sub_clause = clause.sub_clause
+    if isinstance(sub_clause, Choice):
+        body = "\n".join(f"    | {unparse(case)}" for case in sub_clause.sub_clauses)
+    else:
+        body = f"    | {unparse(sub_clause)}"
     return f"{clause.name}:\n{body}"
 
 
