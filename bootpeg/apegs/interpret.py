@@ -117,7 +117,9 @@ def _(clause: Capture) -> Set[str]:
 def py_transform(clause: Transform, _globals: dict) -> Callable:
     """Create a ``lambda`` to execute a transform given some globals"""
     captures = discover_captures(clause.sub_clause)
-    return eval(f"lambda {', '.join(captures)}: {clause.action}", _globals)
+    source = f"lambda {', '.join(captures)}: {clause.action.strip()}"
+    code = compile(source, source, "eval")
+    return eval(code, _globals)
 
 
 class Match(NamedTuple):
