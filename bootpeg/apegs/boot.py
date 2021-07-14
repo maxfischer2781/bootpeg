@@ -67,7 +67,7 @@ def neg(*clauses: Clause):
 
 spaces = Choice(Value(" "), Empty())
 
-min_parser = Parser(
+boot_parser = Parser(
     "top",
     Rule(
         "end_line",
@@ -132,7 +132,7 @@ min_parser = Parser(
                 ),
                 name=Reference("identifier"),
                 _=Value("="),
-                expr=Entail(Reference("expr")),
+                expr=Entail(Reference("prefix")),
             ),
             Reference("atom"),
         ),
@@ -252,6 +252,3 @@ min_parser = Parser(
     ),
     **apegs_globals,
 )
-
-bpeg_path = pathlib.Path(__file__).parent.parent / "grammars" / "bpeg.bpeg"
-print(min_parser.match(bpeg_path.read_text()))
