@@ -6,7 +6,7 @@ import importlib_resources
 
 from .utility import grammar_resource
 from .apegs.boot import apegs_globals, Parser, Grammar, Clause
-from .typing import R, TR, D, D_contra, BootPegParser
+from .typing import R, TR, D, BootPegParser
 
 
 def identity(x: TR) -> TR:
@@ -14,12 +14,6 @@ def identity(x: TR) -> TR:
 
 
 bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_globals
-
-
-def bootpeg_post(*args):
-    if len(args) != 1:
-        raise ValueError(f"Expected one parse result, got {len(args)}")
-    return args[0]
 
 
 class Dialect(Protocol[D]):
@@ -43,7 +37,6 @@ def create_parser(
     dialect: Union[Dialect[str], Parser[str]],
     actions: Mapping[str, Callable] = MappingProxyType({}),
     post: Callable[..., R] = identity,
-    **kwargs,
 ) -> BootPegParser[D, R]:
     """
     Create a parser from a `source` grammar
@@ -52,10 +45,9 @@ def create_parser(
     :param dialect: the `bootpeg` parser compatible with the grammar
     :param actions: the actions to use for the new parser
     :param post: the postprocessing action to use for the new parser
-    :param kwargs: any keyword arguments for the `dialect`'s post processing
     """
     dialect: Parser = getattr(dialect, "parse", dialect)
-    grammar = dialect(source, **kwargs)
+    grammar = dialect(source)
     if not isinstance(grammar, Grammar):
         raise TypeError(
             f"expected parsing to return a {Grammar.__name__}, got {grammar}"
@@ -68,7 +60,6 @@ def import_parser(
     dialect,
     actions: Mapping[str, Callable] = MappingProxyType({}),
     post: Callable[..., R] = identity,
-    **kwargs,
 ) -> BootPegParser[D, R]:
     """
     Import a parser from a grammar at a `location`
@@ -89,4 +80,4 @@ def import_parser(
     resource types such as zip archive members.
     """
     source = importlib_resources.read_text(*grammar_resource(location))
-    return create_parser(source, dialect, actions, post, **kwargs)
+    return create_parser(source, dialect, actions, post)

@@ -24,7 +24,7 @@ from ..apegs.boot import (
     Grammar,
     bpeg_parser,
 )
-from ..api import bootpeg_actions, bootpeg_post, import_parser
+from ..api import bootpeg_actions, import_parser
 from ..typing import BootPegParser
 
 
@@ -143,5 +143,4 @@ parse: BootPegParser[str, BootPegParser] = import_parser(
     __name__,
     dialect=bpeg_parser,
     actions=bootpeg_actions,
-    post=bootpeg_post,
 )
