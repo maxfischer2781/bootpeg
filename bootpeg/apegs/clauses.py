@@ -41,7 +41,7 @@ class Range(Generic[D]):
 
     def __init__(self, lower: D, upper: D):
         if len(lower) != len(upper):
-            raise Value(f"Bounds must be of same length, got {lower} and {upper}")
+            raise ValueError(f"Bounds must be of same length, got {lower} and {upper}")
         self.lower, self.upper = (lower, upper) if lower < upper else (upper, lower)
 
 
