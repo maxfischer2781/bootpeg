@@ -1,22 +1,55 @@
 # Full PEG+Actions parser
 # =======================
-spaces:
-    | " "*
+top:
+    | *rules=( rule | ~ end_line )+ !. { Grammar(*rules) }
+
+# repeatedly needed clauses
 end_line:
     | spaces [ "#" (!\n .)* ] ( \n | !. )
+spaces:
+    | " "*
 identifier:
     | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+
 literal:
     | '"' body=(!'"' .)+ '"' | "'" body=(!"'" .)+ "'" {body}
 
+# rule and action parsing
+rule:
+    | name=identifier ":" end_line ~ *cases=(" " spaces "|" ~ spaces rule_case end_line)+ { Rule(name, Choice(*cases)) }
+    | name=identifier ":" ~ expr=rule_case { Rule(name, expr) }
+rule_case:
+    | expr=expr spaces action=action { Transform(expr, action) }
+    | expr
+action:
+    | "{" body=action_body ~ "}" { body }
+action_body:
+    | (!"{" !"}" .)+
+    | "{" action_body ~ "}"
+
 # clause producing expressions
-atom:
-    | "''" | '""' { Empty() }
-    | "." { Any(1) }
-    | "\n" { Value("\n") }
-    | lower=literal spaces "-" ~ spaces upper=literal { Range(lower, upper) }
-    | literal=literal { Value(literal) }
-    | name=identifier { Reference(name) }
+# the top expression, recursively matching all other expressions
+expr:
+    | choice
+
+choice:
+    | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(head, *tail) }
+    | sequence
+
+sequence:
+    | *head=(capture spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
+    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
+    | "~" ~ spaces tail=sequence { Entail(tail) }
+    | capture
+
+capture:
+    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
+    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
+    | repeat
+
+repeat:
+    | expr=prefix "+" { Repeat(expr) }
+    | expr=prefix "*" { Choice(Repeat(expr), Empty()) }
+    | prefix
 
 prefix:
     | "!" spaces expr=prefix { Not(expr) }
@@ -25,43 +58,10 @@ prefix:
     | "[" spaces ~ expr=expr spaces "]" { Choice(expr, Empty()) }
     | atom
 
-repeat:
-    | expr=prefix "+" { Repeat(expr) }
-    | expr=prefix "*" { Choice(Repeat(expr), Empty()) }
-    | prefix
-
-capture:
-    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
-    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
-    | repeat
-
-sequence:
-    | *head=(capture spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
-    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
-    | "~" ~ spaces tail=sequence { Entail(tail) }
-    | capture
-
-choice:
-    | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(head, *tail) }
-    | sequence
-
-# the top expression, recursively matching all other expressions
-expr:
-    | choice
-
-# rule and action parsing
-action_body:
-    | (!"{" !"}" .)+
-    | "{" action_body ~ "}"
-action:
-    | "{" body=action_body ~ "}" { body }
-
-rule_case:
-    | expr=expr spaces action=action { Transform(expr, action) }
-    | expr
-
-rule:
-    | name=identifier ":" end_line ~ *cases=(" " spaces "|" ~ spaces rule_case end_line)+ { Rule(name, Choice(*cases)) }
-    | name=identifier ":" ~ expr=rule_case { Rule(name, expr) }
-top:
-    | *rules=( rule | ~ end_line )+ !. { Grammar("top", *rules) }
+atom:
+    | "''" | '""' { Empty() }
+    | "." { Any(1) }
+    | "\n" { Value("\n") }
+    | lower=literal spaces "-" ~ spaces upper=literal { Range(lower, upper) }
+    | literal=literal { Value(literal) }
+    | name=identifier { Reference(name) }

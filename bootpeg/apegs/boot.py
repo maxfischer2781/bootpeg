@@ -70,7 +70,20 @@ def neg(*clauses: Clause):
 spaces = Choice(Value(" "), Empty())
 
 boot_parser = Parser(
-    "top",
+    Rule(
+        "top",
+        Sequence(
+            Transform(
+                Capture(
+                    Repeat(Choice(Reference("rule"), Reference("end_line"))),
+                    "rules",
+                    variadic=True,
+                ),
+                'Grammar(*rules)',
+            ),
+            Not(Any(1)),
+        ),
+    ),
     Rule(
         "end_line",
         Sequence(
@@ -89,6 +102,57 @@ boot_parser = Parser(
                 Sequence(Value(quote), Repeat(neg(Value(quote))), Entail(Value(quote)))
                 for quote in ('"', "'")
             )
+        ),
+    ),
+    # rule matching
+    Rule(
+        "action_body",
+        Repeat(
+            Choice(
+                neg(Value("{"), Value("}")),
+                Sequence(Value("{"), Reference("action_body"), Entail(Value("}"))),
+            )
+        ),
+    ),
+    Rule(
+        "action",
+        apply(
+            "body", _h=Value("{"), body=Reference("action_body"), _t=Entail(Value("}"))
+        ),
+    ),
+    Rule(
+        "rule_choice",
+        Choice(
+            apply(
+                "Transform(expr, action)",
+                _h=Value("| "),
+                expr=Reference("expr"),
+                _s=spaces,
+                action=Reference("action"),
+            ),
+            Sequence(Value("| "), Reference("expr")),
+        ),
+    ),
+    Rule(
+        "rule_body",
+        Choice(
+            apply(
+                "Choice(first, otherwise)",
+                first=Reference("rule_body"),
+                otherwise=Sequence(
+                    Value("    "), Reference("rule_choice"), Reference("end_line")
+                ),
+            ),
+            Sequence(Value("    "), Reference("rule_choice"), Reference("end_line")),
+        ),
+    ),
+    Rule(
+        "rule",
+        apply(
+            "Rule(name, body)",
+            name=Reference("identifier"),
+            _=Sequence(Value(":"), Reference("end_line")),
+            body=Reference("rule_body"),
         ),
     ),
     # atomic clauses without sub-clauses
@@ -192,70 +256,6 @@ boot_parser = Parser(
     Rule(
         "expr",
         Reference("choice"),
-    ),
-    Rule(
-        "action_body",
-        Repeat(
-            Choice(
-                neg(Value("{"), Value("}")),
-                Sequence(Value("{"), Reference("action_body"), Entail(Value("}"))),
-            )
-        ),
-    ),
-    Rule(
-        "action",
-        apply(
-            "body", _h=Value("{"), body=Reference("action_body"), _t=Entail(Value("}"))
-        ),
-    ),
-    Rule(
-        "rule_choice",
-        Choice(
-            apply(
-                "Transform(expr, action)",
-                _h=Value("| "),
-                expr=Reference("expr"),
-                _s=spaces,
-                action=Reference("action"),
-            ),
-            Sequence(Value("| "), Reference("expr")),
-        ),
-    ),
-    Rule(
-        "rule_body",
-        Choice(
-            apply(
-                "Choice(first, otherwise)",
-                first=Reference("rule_body"),
-                otherwise=Sequence(
-                    Value("    "), Reference("rule_choice"), Reference("end_line")
-                ),
-            ),
-            Sequence(Value("    "), Reference("rule_choice"), Reference("end_line")),
-        ),
-    ),
-    Rule(
-        "rule",
-        apply(
-            "Rule(name, body)",
-            name=Reference("identifier"),
-            _=Sequence(Value(":"), Reference("end_line")),
-            body=Reference("rule_body"),
-        ),
-    ),
-    Rule(
-        "top",
-        Sequence(
-            Transform(
-                Capture(
-                    Repeat(Choice(Reference("rule"), Reference("end_line"))),
-                    "rules",
-                    variadic=True,
-                ),
-                'Grammar("top", *rules)',
-            ),
-            Not(Any(1)),
-        ),
     ),
     **apegs_globals,
 )

@@ -16,13 +16,9 @@ def identity(x: TR) -> TR:
 bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_globals
 
 
-def bootpeg_post(*args, top=None):
+def bootpeg_post(*args):
     if len(args) != 1:
         raise ValueError(f"Expected one parse result, got {len(args)}")
-    grammar = args[0]
-    if top is not None:
-        grammar.top = top
-    print(grammar, grammar.top, top)
     return args[0]
 
 

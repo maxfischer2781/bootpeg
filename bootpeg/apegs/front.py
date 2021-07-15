@@ -108,13 +108,17 @@ def unpack(match: Match) -> AnyT:
 
 
 class Parser(Generic[D]):
-    def __init__(self, top: str, *rules: Rule[D], **_globals: AnyT):
-        self.top = top
-        self.rules = rules
+    @property
+    def top(self) -> str:
+        return self._top
+
+    def __init__(self, __top: Rule[D], *rules: Rule[D], **_globals: AnyT):
+        self._top = __top.name
+        self.rules = (__top, *rules)
         self.globals = _globals
         self._match_top = match_clause(Reference(self.top), _globals)
         self._match_rules: Dict[str, MatchClause] = {
-            rule.name: match_clause(rule.sub_clause, _globals) for rule in rules
+            rule.name: match_clause(rule.sub_clause, _globals) for rule in self.rules
         }
 
     def __call__(self, source: D) -> AnyT:
@@ -127,9 +131,8 @@ class Parser(Generic[D]):
 
 
 class Grammar(Generic[D]):
-    def __init__(self, top: str, *rules: Rule[D]):
-        self.top = top
+    def __init__(self, *rules: Rule[D]):
         self.rules = rules
 
     def parser(self, **_globals: AnyT) -> Parser:
-        return Parser(self.top, *self.rules, **_globals)
+        return Parser(*self.rules, **_globals)
