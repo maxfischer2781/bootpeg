@@ -22,7 +22,7 @@ from ..apegs.boot import (
     Clause,
     Parser,
     Grammar,
-    boot_parser,
+    bpeg_parser,
 )
 from ..api import bootpeg_actions, bootpeg_post, import_parser
 from ..typing import BootPegParser
@@ -51,6 +51,14 @@ def unparse(clause: Union[Clause, Parser, Grammar]) -> str:
     raise NotImplementedError(f"Cannot unparse {clause!r} as bpeg")
 
 
+@unparse.register(Parser)
+@unparse.register(Grammar)
+def unparse_literal(clause: Union[Parser, Grammar]) -> str:
+    return "\n\n".join(
+        unparse(rule) for rule in clause.rules
+    )
+
+
 @unparse.register(Value)
 def unparse_literal(clause: Value) -> str:
     return repr(clause.value)
@@ -58,7 +66,7 @@ def unparse_literal(clause: Value) -> str:
 
 @unparse.register(Range)
 def unparse_range(clause: Range) -> str:
-    return f"{clause.lower!r} - {clause.upper!r}"
+    return f"{clause.lower!r}-{clause.upper!r}"
 
 
 @unparse.register(Empty)
@@ -118,7 +126,7 @@ def unparse_capture(clause: Capture) -> str:
 
 @unparse.register(Transform)
 def unparse_capture(clause: Transform) -> str:
-    return f"{unparse(clause.sub_clause)} {{{ clause.action }}}"
+    return f"{unparse(clause.sub_clause)} {{ {clause.action.strip()} }}"
 
 
 @unparse.register(Rule)
@@ -132,7 +140,7 @@ def unparse_rule(clause: Rule) -> str:
 
 
 def boot_dialect(source):
-    return boot_parser(source)[0]
+    return bpeg_parser(source)[0]
 
 
 parse: BootPegParser[str, BootPegParser] = import_parser(
