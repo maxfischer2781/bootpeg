@@ -27,16 +27,24 @@ def context(source: Sequence, index: int) -> Tuple[str, str]:
 
 
 class ParseFailure(Exception):
-    __slots__ = ("message", "source", "index")
+    __slots__ = ("message", "source", "index", "path")
 
-    def __init__(self, message: str, source: Sequence, index: int):
+    def __init__(self, message: str, source: Sequence, index: int, path: Tuple[str, ...]):
         self.message = message
         self.source = source
         self.index = index
+        self.path = path
 
     def __str__(self):
         head, tail = context(self.source, self.index)
-        return "\n".join((self.message, " " * len(head) + "v", head + tail))
+        return "\n".join(
+            (
+                f"in path {' -> '.join(self.path) if self.path else '[start]'}",
+                self.message,
+                f"{' ' * len(head)}v-[at index {self.index}]",
+                head + tail
+            )
+        )
 
 
 def walk_failures(err: AnyMatchFailure):
@@ -55,12 +63,17 @@ def report(source: Sequence, err: AnyMatchFailure):
         if isinstance(failures[-1], (MatchFailure, FatalMatchFailure))
         else failures[-2:]
     )  # type: AnyMatchFailure, Optional[AnyMatchFailure]
-    reason = (
-        f"transforming {failure.expected} failed ({type(cause)}: {cause})"
-        if cause is not None
-        else f"expected {failure.expected}"
+    reference_path = tuple(
+        mf.clause.name
+        for mf in failures[:-1 if cause is None else -2]
+        if isinstance(mf.clause, Reference)
     )
-    raise ParseFailure(reason, source, failure.at) from cause
+    reason = (
+        f"transforming {failure.clause} failed ({type(cause)}: {cause})"
+        if cause is not None
+        else f"expected {failure.clause}"
+    )
+    raise ParseFailure(reason, source, failure.at, reference_path) from cause
 
 
 def unpack(match: Match) -> Union[Tuple, Dict]:

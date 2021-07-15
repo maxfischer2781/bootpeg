@@ -53,19 +53,19 @@ Clause = Union[
 
 
 class MatchFailure(Exception):
-    __slots__ = ("at", "expected")
+    __slots__ = ("at", "clause")
 
-    def __init__(self, at: int, expected: Clause):
+    def __init__(self, at: int, clause: Clause):
         self.at = at
-        self.expected = expected
+        self.clause = clause
 
 
 class FatalMatchFailure(Exception):
-    __slots__ = ("at", "expected")
+    __slots__ = ("at", "clause")
 
-    def __init__(self, at: int, expected: Clause):
+    def __init__(self, at: int, clause: Clause):
         self.at = at
-        self.expected = expected
+        self.clause = clause
 
 
 @singledispatch
