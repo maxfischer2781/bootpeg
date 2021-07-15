@@ -262,4 +262,4 @@ boot_parser = Parser(
 
 bpeg_parser = boot_parser(
     importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
-)[0].parser(**apegs_globals)
+).parser(**apegs_globals)

@@ -139,13 +139,9 @@ def unparse_rule(clause: Rule) -> str:
     return f"{clause.name}:\n{body}"
 
 
-def boot_dialect(source):
-    return bpeg_parser(source)[0]
-
-
 parse: BootPegParser[str, BootPegParser] = import_parser(
     __name__,
-    dialect=boot_dialect,
+    dialect=bpeg_parser,
     actions=bootpeg_actions,
     post=bootpeg_post,
 )

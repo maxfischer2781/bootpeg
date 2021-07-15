@@ -39,11 +39,7 @@ def parse(
 ) -> R:
     """Parse a ``source`` with a given ``parser`` and ``post`` processing"""
     result = parser(source)
-    return (
-        post(**result, **kwargs)
-        if isinstance(result, Mapping)
-        else post(*result, **kwargs)
-    )
+    return post(result, **kwargs)
 
 
 def create_parser(
