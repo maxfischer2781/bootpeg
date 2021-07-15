@@ -1,7 +1,15 @@
 from typing import Union, Sequence, Tuple, Optional, Any as AnyT, Dict, Generic
 
 from ..typing import D
-from .interpret import MatchFailure, FatalMatchFailure, Rule, Reference, MatchClause, Match, match_clause
+from .interpret import (
+    MatchFailure,
+    FatalMatchFailure,
+    Rule,
+    Reference,
+    MatchClause,
+    Match,
+    match_clause,
+)
 
 
 AnyMatchFailure = Union[MatchFailure, FatalMatchFailure]
@@ -29,7 +37,9 @@ def context(source: Sequence, index: int) -> Tuple[str, str]:
 class ParseFailure(Exception):
     __slots__ = ("message", "source", "index", "path")
 
-    def __init__(self, message: str, source: Sequence, index: int, path: Tuple[str, ...]):
+    def __init__(
+        self, message: str, source: Sequence, index: int, path: Tuple[str, ...]
+    ):
         self.message = message
         self.source = source
         self.index = index
@@ -42,7 +52,7 @@ class ParseFailure(Exception):
                 f"in path {' -> '.join(self.path) if self.path else '[start]'}",
                 self.message,
                 f"{' ' * len(head)}v-[at index {self.index}]",
-                head + tail
+                head + tail,
             )
         )
 
@@ -65,7 +75,7 @@ def report(source: Sequence, err: AnyMatchFailure):
     )  # type: AnyMatchFailure, Optional[AnyMatchFailure]
     reference_path = tuple(
         mf.clause.name
-        for mf in failures[:-1 if cause is None else -2]
+        for mf in failures[: -1 if cause is None else -2]
         if isinstance(mf.clause, Reference)
     )
     reason = (
@@ -96,9 +106,7 @@ class Parser(Generic[D]):
     def __call__(self, source: D) -> Union[Tuple, Dict]:
         try:
             return unpack(
-                self._match_top(
-                    of=source, at=0, memo={}, rules=self._match_rules
-                )[-1]
+                self._match_top(of=source, at=0, memo={}, rules=self._match_rules)[-1]
             )
         except (MatchFailure, FatalMatchFailure) as mf:
             raise report(source, mf)

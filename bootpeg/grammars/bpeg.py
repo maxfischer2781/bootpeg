@@ -29,7 +29,8 @@ from ..typing import BootPegParser
 
 
 precedence = {
-    clause: prec for prec, clauses in enumerate(
+    clause: prec
+    for prec, clauses in enumerate(
         (
             [Value, Range, Any, Empty, Reference],
             [Not, And],
@@ -37,12 +38,17 @@ precedence = {
             [Sequence, Entail],
             [Choice, Transform],
         )
-    ) for clause in clauses
+    )
+    for clause in clauses
 }
 
 
 def _wrapped(clause: Clause, parent: Clause) -> str:
-    return f"({unparse(clause)})" if precedence[type(parent)] < precedence[type(clause)] else unparse(clause)
+    return (
+        f"({unparse(clause)})"
+        if precedence[type(parent)] < precedence[type(clause)]
+        else unparse(clause)
+    )
 
 
 @singledispatch
@@ -54,9 +60,7 @@ def unparse(clause: Union[Clause, Parser, Grammar]) -> str:
 @unparse.register(Parser)
 @unparse.register(Grammar)
 def unparse_literal(clause: Union[Parser, Grammar]) -> str:
-    return "\n\n".join(
-        unparse(rule) for rule in clause.rules
-    )
+    return "\n\n".join(unparse(rule) for rule in clause.rules)
 
 
 @unparse.register(Value)
@@ -86,9 +90,7 @@ def unparse_reference(clause: Reference) -> str:
 
 @unparse.register(Sequence)
 def unparse_sequence(clause: Sequence) -> str:
-    return " ".join(
-        _wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses
-    )
+    return " ".join(_wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses)
 
 
 @unparse.register(Entail)
@@ -98,9 +100,7 @@ def unparse_sequence(clause: Entail) -> str:
 
 @unparse.register(Choice)
 def unparse_choice(clause: Choice) -> str:
-    return " | ".join(
-        _wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses
-    )
+    return " | ".join(_wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses)
 
 
 @unparse.register(Repeat)
