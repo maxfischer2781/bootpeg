@@ -1,8 +1,10 @@
 """
 Minimal parser required to bootstrap entire bootpeg parser
 """
-import pathlib
+import sys
 import string
+
+import importlib_resources
 
 from .clauses import (
     Value,
@@ -257,3 +259,7 @@ boot_parser = Parser(
     ),
     **apegs_globals,
 )
+
+bpeg_parser = boot_parser(
+    importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
+)[0].parser(**apegs_globals)
