@@ -3,17 +3,17 @@
 spaces:
     | " "*
 end_line:
-    | spaces [ "#" (!\n) ] ( \n | !. )
+    | spaces [ "#" (!\n .)* ] ( \n | !. )
 identifier:
     | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+
 literal:
-    | '"' (!'"' .)+ '"' | "'" (!"'" .)+ "'"
+    | '"' body=(!'"' .)+ '"' | "'" body=(!"'" .)+ "'" {body}
 
 # clause producing expressions
 atom:
     | "''" | '""' { Empty() }
     | "." { Any(1) }
-    | "\n" { Value("\\n") }
+    | "\n" { Value("\n") }
     | lower=literal spaces "-" ~ spaces upper=literal { Range(lower, upper) }
     | literal=literal { Value(literal) }
     | name=identifier { Reference(name) }
@@ -26,8 +26,8 @@ prefix:
     | atom
 
 repeat:
-    | expr=prefix spaces "+" { Repeat(expr) }
-    | expr=prefix spaces "*" { Choice(Repeat(expr), Empty()) }
+    | expr=prefix "+" { Repeat(expr) }
+    | expr=prefix "*" { Choice(Repeat(expr), Empty()) }
     | prefix
 
 capture:
@@ -36,13 +36,13 @@ capture:
     | repeat
 
 sequence:
-    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
     | *head=(capture spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
+    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
     | "~" ~ spaces tail=sequence { Entail(tail) }
     | capture
 
 choice:
-    | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(first, *tail) }
+    | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(head, *tail) }
     | sequence
 
 # the top expression, recursively matching all other expressions
@@ -61,7 +61,7 @@ rule_case:
     | expr
 
 rule:
-    | name=identifier ":" end_line ~ *cases=(" " spaces "|" spaces rule_case end_line)+ { Rule(name, Choice(*cases)) }
+    | name=identifier ":" end_line ~ *cases=(" " spaces "|" ~ spaces rule_case end_line)+ { Rule(name, Choice(*cases)) }
     | name=identifier ":" ~ expr=rule_case { Rule(name, expr) }
 top:
-    | *rules=( rule | end_line )+ !. { Grammar("top", *rules) }
+    | *rules=( rule | ~ end_line )+ !. { Grammar("top", *rules) }
