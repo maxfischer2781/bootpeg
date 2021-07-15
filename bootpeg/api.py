@@ -1,42 +1,25 @@
 from typing import Mapping, Callable, Protocol, Union
-from functools import partial
 from types import MappingProxyType
 
 import importlib_resources
 
 from .utility import grammar_resource
 from .apegs.boot import apegs_globals, Parser, Grammar, Clause
-from .typing import R, TR, D, BootPegParser
-
-
-def identity(x: TR) -> TR:
-    return x
+from .typing import R, D, BootPegParser
 
 
 bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_globals
 
 
 class Dialect(Protocol[D]):
-    unparse: Callable
-    parse: Parser[D]
-
-
-def parse(
-    source: D,
-    parser: Parser[D],
-    post: Callable[..., R] = identity,
-    **kwargs,
-) -> R:
-    """Parse a ``source`` with a given ``parser`` and ``post`` processing"""
-    result = parser(source)
-    return post(result, **kwargs)
+    unparse: Callable[[Union[Parser, Grammar, Clause]], str]
+    parse: Parser[str]
 
 
 def create_parser(
     source: str,
     dialect: Union[Dialect[str], Parser[str]],
     actions: Mapping[str, Callable] = MappingProxyType({}),
-    post: Callable[..., R] = identity,
 ) -> BootPegParser[D, R]:
     """
     Create a parser from a `source` grammar
@@ -44,7 +27,6 @@ def create_parser(
     :param source: a textual grammar
     :param dialect: the `bootpeg` parser compatible with the grammar
     :param actions: the actions to use for the new parser
-    :param post: the postprocessing action to use for the new parser
     """
     dialect: Parser = getattr(dialect, "parse", dialect)
     grammar = dialect(source)
@@ -52,14 +34,13 @@ def create_parser(
         raise TypeError(
             f"expected parsing to return a {Grammar.__name__}, got {grammar}"
         )
-    return partial(parse, parser=grammar.parser(**actions), post=post)
+    return grammar.parser(**actions)
 
 
 def import_parser(
     location: str,
     dialect,
     actions: Mapping[str, Callable] = MappingProxyType({}),
-    post: Callable[..., R] = identity,
 ) -> BootPegParser[D, R]:
     """
     Import a parser from a grammar at a `location`
@@ -67,8 +48,6 @@ def import_parser(
     :param location: a module or module-like name
     :param dialect: the `bootpeg` parser compatible with the grammar
     :param actions: the actions to use for the new parser
-    :param post: the postprocessing action to use for the new parser
-    :param kwargs: any keyword arguments for the `dialect`'s post processing
 
     The `location` is a dotted module name; it is used to look up the grammar
     using the Python resource import machinery.
@@ -80,4 +59,4 @@ def import_parser(
     resource types such as zip archive members.
     """
     source = importlib_resources.read_text(*grammar_resource(location))
-    return create_parser(source, dialect, actions, post)
+    return create_parser(source, dialect, actions)
