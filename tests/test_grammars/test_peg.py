@@ -48,8 +48,8 @@ def test_roundtrip(clause):
     clause = clause
     literal = peg.unparse(clause)
     assert literal
-    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
-    assert parsed_rule.sub_clauses[0] == clause
+    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").rules[0]
+    assert parsed_rule.sub_clause == clause
 
 
 sys.setrecursionlimit(30000)

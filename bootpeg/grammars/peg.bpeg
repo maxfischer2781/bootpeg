@@ -3,10 +3,10 @@
 #               by Bryan Ford
 # ===============================
 top:
-    | (spacing | definition)+ ~!. { Grammar(*rules) }
+    | *rules=(definition | spacing)+ ~!. { Grammar(*rules) }
 
 spacing:
-    | (" " | "	")* [ "#" (!\n .)* ] ( \n | !. | '' )
+    | (" " | "	")* [ "#" (!\n .)* ] [\n | !.]
 identifier:
     | ( "a"-"z" | "A"-"Z" | "_" ) ( "a"-"z" | "A"-"Z" | "0"-"9" | "_" )*
 literal:
@@ -21,11 +21,11 @@ expr:
     | choice
 
 choice:
-    | head=transform *tail=(spaces "/" ~ spaces transform)+ { Choice(head, *tail) }
+    | head=transform *tail=(spacing "/" ~ spacing transform)+ { Choice(head, *tail) }
     | transform
 
 transform:
-    | expr=sequence spaces action=action { Transform(expr, action) }
+    | expr=sequence spacing action=action { Transform(expr, action) }
     | sequence
 action:
     | "{" body=action_body+ ~ "}" { body }
@@ -34,9 +34,9 @@ action_body:
     | "{" action_body ~ "}"
 
 sequence:
-    | *head=(capture spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
-    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
-    | "~" ~ spaces tail=sequence { Entail(tail) }
+    | *head=(capture spacing)+ "~" ~ spacing tail=sequence { Sequence(*head, Entail(tail)) }
+    | head=capture *tail=(spacing capture)+ { Sequence(head, *tail) }
+    | "~" ~ spacing tail=sequence { Entail(tail) }
     | capture
 
 capture:
@@ -51,9 +51,9 @@ repeat:
     | prefix
 
 prefix:
-    | "!" spaces expr=prefix { Not(expr) }
-    | "&" spaces expr=prefix { And(expr) }
-    | "(" spaces ~ expr spaces ")"
+    | "!" spacing expr=prefix { Not(expr) }
+    | "&" spacing expr=prefix { And(expr) }
+    | "(" spacing ~ expr spacing ")"
     | atom
 
 # exclude "identifier <-" to avoid matching a <- b c <- d as a <- (b c)
