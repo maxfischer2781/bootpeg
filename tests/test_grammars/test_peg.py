@@ -4,33 +4,39 @@ import pytest
 
 from bootpeg import create_parser
 from bootpeg.grammars import peg
-from bootpeg.pika.front import (
-    Rule,
-    Literal,
-    Nothing,
-    Anything,
+from bootpeg.apegs.boot import (
+    Value,
+    Range,
+    Any,
+    Empty,
     Sequence,
     Choice,
     Repeat,
-    Not,
     And,
+    Not,
+    Entail,
+    Capture,
+    Transform,
     Reference,
-    Range,
-    Delimited,
+    Rule,
+    Clause,
+    Parser,
+    Grammar,
+    bpeg_parser,
 )
 
 
 roundtrip_clauses = [
-    Nothing(),
-    Anything(1),
-    *(Literal(literal) for literal in ("A", "x", "ß", " ")),
-    Sequence(Literal("A"), Literal("B"), Literal("A")),
-    Sequence(Literal(" "), Literal(" ")),
-    Choice(Literal("a"), Literal("b"), Nothing()),
-    Repeat(Literal("x")),
-    Repeat(Sequence(Literal("x"), Literal("y"), Literal("z"))),
-    Not(Literal("a")),
-    And(Literal("a")),
+    Empty(),
+    Any(1),
+    *(Value(literal) for literal in ("A", "x", "ß", " ")),
+    Sequence(Value("A"), Value("B"), Value("A")),
+    Sequence(Value(" "), Value(" ")),
+    Choice(Value("a"), Value("b"), Empty()),
+    Repeat(Value("x")),
+    Repeat(Sequence(Value("x"), Value("y"), Value("z"))),
+    Not(Value("a")),
+    And(Value("a")),
     Reference("some_rule"),
     Range("a", "b"),
 ]
@@ -43,27 +49,6 @@ def test_roundtrip(clause):
     assert literal
     parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
     assert parsed_rule.sub_clauses[0] == clause
-
-
-emulated_clauses = [
-    (
-        Delimited(Literal("A"), Literal("B")),
-        Sequence(
-            Literal("A"),
-            Choice(Repeat(Sequence(Not(Literal("B")), Anything(1))), Nothing()),
-            Literal("B"),
-        ),
-    ),
-]
-
-
-@pytest.mark.parametrize("clause, emulation", emulated_clauses)
-def test_roundtrip_emulate(clause, emulation):
-    clause = clause
-    literal = peg.unparse(clause)
-    assert literal
-    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
-    assert parsed_rule.sub_clauses[0] == emulation
 
 
 sys.setrecursionlimit(30000)
