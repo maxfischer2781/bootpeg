@@ -79,7 +79,7 @@ boot_parser = Parser(
                     "rules",
                     variadic=True,
                 ),
-                'Grammar(*rules)',
+                "Grammar(*rules)",
             ),
             Not(Any(1)),
         ),

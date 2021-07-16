@@ -146,5 +146,5 @@ def unescape(literal: str) -> str:
 parse: BootPegParser[str, BootPegParser] = import_parser(
     __name__,
     dialect=bpeg,
-    actions={**bootpeg_actions, 'unescape': unescape},
+    actions={**bootpeg_actions, "unescape": unescape},
 )
