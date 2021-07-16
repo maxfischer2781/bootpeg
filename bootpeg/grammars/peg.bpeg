@@ -6,7 +6,7 @@ top:
     | *rules=(definition | spacing)+ ~!. { Grammar(*rules) }
 
 spacing:
-    | ((" " | "	")* [ "#" (!\n .)* ] [\n | !.])*
+    | ((" " | "	")* [ "#" (!\n .)* ] [\n | !.])+
 identifier:
     | ( "a"-"z" | "A"-"Z" | "_" ) ( "a"-"z" | "A"-"Z" | "0"-"9" | "_" )*
 literal:
