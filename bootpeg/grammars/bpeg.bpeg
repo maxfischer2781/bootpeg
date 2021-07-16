@@ -32,7 +32,7 @@ expr:
     | choice
 
 choice:
-    | head=choice spaces *tail=("|" ~ spaces sequence) { Choice(head, *tail) }
+    | head=sequence *tail=(spaces "|" ~ spaces sequence)+ { Choice(head, *tail) }
     | sequence
 
 sequence:
