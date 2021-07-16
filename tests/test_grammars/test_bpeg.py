@@ -2,37 +2,43 @@ import pytest
 
 from bootpeg import create_parser
 from bootpeg.grammars import bpeg
-from bootpeg.pika.front import (
-    Rule,
-    Literal,
-    Nothing,
-    Anything,
+
+from bootpeg.apegs.boot import (
+    Value,
+    Range,
+    Any,
+    Empty,
     Sequence,
     Choice,
     Repeat,
-    Not,
     And,
+    Not,
+    Entail,
+    Capture,
+    Transform,
     Reference,
-    Range,
-    Delimited,
-    CapturedParseFailure,
+    Rule,
+    Clause,
+    Parser,
+    Grammar,
+    bpeg_parser,
 )
+from bootpeg.apegs.front import ParseFailure
 
 
 clauses = [
-    Nothing(),
-    Anything(1),
-    *(Literal(literal) for literal in ("A", "x", "ß", " ")),
-    Sequence(Literal("A"), Literal("B"), Literal("A")),
-    Sequence(Literal(" "), Literal(" ")),
-    Choice(Literal("a"), Literal("b"), Nothing()),
-    Repeat(Literal("x")),
-    Repeat(Sequence(Literal("x"), Literal("y"), Literal("z"))),
-    Not(Literal("a")),
-    And(Literal("a")),
+    Empty(),
+    Any(1),
+    *(Value(literal) for literal in ("A", "x", "ß", " ")),
+    Sequence(Value("A"), Value("B"), Value("A")),
+    Sequence(Value(" "), Value(" ")),
+    Choice(Value("a"), Value("b"), Empty()),
+    Repeat(Value("x")),
+    Repeat(Sequence(Value("x"), Value("y"), Value("z"))),
+    Not(Value("a")),
+    And(Value("a")),
     Reference("some_rule"),
     Range("a", "b"),
-    Delimited(Literal("'"), Literal("'")),
 ]
 
 
@@ -41,40 +47,34 @@ def test_roundtrip(clause):
     clause = clause
     literal = bpeg.unparse(clause)
     assert literal
-    parsed_rule: Rule = bpeg.parse(f"parse_test:\n    | {literal}\n").clauses[
-        "parse_test"
-    ]
-    assert parsed_rule.sub_clauses[0] == clause
+    parsed_rule: Rule = bpeg.parse(f"parse_test:\n    | {literal}\n").rules[0]
+    assert parsed_rule.sub_clause.sub_clauses[0] == clause
 
 
-commit_failures = (("top:\n | ~\n", {9}),)
+commit_failures = (("top:\n | ~\n", 9),)
 
 
-@pytest.mark.parametrize("source, positions", commit_failures)
-def test_commit(source, positions):
+@pytest.mark.parametrize("source, position", commit_failures)
+def test_commit(source, position):
     try:
         bpeg.parse(source)
-    except CapturedParseFailure as cpf:
-        assert cpf.positions == positions
+    except ParseFailure as pf:
+        assert pf.index == position
     else:
-        assert not positions, "Expected parse failures, found none"
+        assert not position, "Expected parse failures, found none"
 
 
 @pytest.mark.parametrize("source", ["a", "bcde"])
 def test_multiuse_actions(source):
     """Test that using the same capture multiple times is valid"""
-    multiuse_parse = create_parser(
-        "top:\n    | a=(.*) { (.a, .a) }\n", bpeg, actions={}
-    )
+    multiuse_parse = create_parser("top:\n    | a=(.*) { (a, a) }\n", bpeg)
     result = multiuse_parse(source)
     assert result == (source, source)
 
 
 def test_not_anything():
-    """Test that ``Anything`` does not match after the end"""
-    not_anything_parse = create_parser(
-        "top:\n    | a=(.) !. { (.a) }\n", bpeg, actions={}
-    )
+    """Test that ``Any`` does not match after the end"""
+    not_anything_parse = create_parser("top:\n    | a=(.) !. { (a) }\n", bpeg)
     assert not_anything_parse("b") == "b"
-    with pytest.raises(Exception):
+    with pytest.raises(ParseFailure):
         not_anything_parse("bb")
