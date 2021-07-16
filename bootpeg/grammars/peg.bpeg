@@ -64,9 +64,6 @@ atom:
     | literal=literal { Value(literal) }
     | name=identifier !(spacing ('<-' | '←')) { Reference(name) }
 
-terminal:
-    | term=(class | nothing | literal | anything) { .term }
-
 class:
     | "[" range "]"
     | "[" ~ *ranges=range+ "]" { Sequence(*ranges) }
