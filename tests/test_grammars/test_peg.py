@@ -58,7 +58,7 @@ sys.setrecursionlimit(30000)
 # Some fixes due to errors in the original grammar
 peg_grammar = r"""
 # Hierarchical syntax
-Grammar    <- (Spacing Definition)+ # EndOfFile
+Grammar    <- (Spacing Definition)+ !. # EndOfFile
 Definition <- Identifier LEFTARROW Expression Spacing
 
 Expression <- Sequence (SLASH Sequence)*
