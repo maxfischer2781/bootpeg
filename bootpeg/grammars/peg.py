@@ -124,7 +124,7 @@ def unparse_capture(clause: Capture) -> str:
 
 @unparse.register(Transform)
 def unparse_capture(clause: Transform) -> str:
-    return f"{unparse(clause.sub_clause)} {{ {clause.action.strip()} }}"
+    return f"{unparse(clause.sub_clause)} {{{clause.action}}}"
 
 
 @unparse.register(Rule)

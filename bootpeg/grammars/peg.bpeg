@@ -28,7 +28,7 @@ transform:
     | expr=sequence spaces action=action { Transform(expr, action) }
     | sequence
 action:
-    | "{" body=action_body ~ "}" { body }
+    | "{" body=action_body+ ~ "}" { body }
 action_body:
     | (!"{" !"}" .)+
     | "{" action_body ~ "}"

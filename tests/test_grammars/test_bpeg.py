@@ -18,10 +18,6 @@ from bootpeg.apegs.boot import (
     Transform,
     Reference,
     Rule,
-    Clause,
-    Parser,
-    Grammar,
-    bpeg_parser,
 )
 from bootpeg.apegs.front import ParseFailure
 
@@ -39,6 +35,11 @@ clauses = [
     And(Value("a")),
     Reference("some_rule"),
     Range("a", "b"),
+    Entail(Sequence(Value("a"), Value("b"))),
+    Sequence(Value("head"), Entail(Sequence(Value("a"), Value("b")))),
+    Capture(Value("expr"), "name", True),
+    Capture(Value("expr"), "name", False),
+    Transform(Value("body"), "{True}"),
 ]
 
 
