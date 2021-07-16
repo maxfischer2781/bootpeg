@@ -105,7 +105,7 @@ EndOfFile <- !.
 
 def test_parse_reference():
     """Parse the PEG reference grammar"""
-    parse = create_parser(peg_grammar, actions={}, dialect=peg, top="Grammar")
+    parse = create_parser(peg_grammar, dialect=peg)
     assert parse(peg_grammar)
 
 

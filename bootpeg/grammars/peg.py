@@ -68,7 +68,7 @@ def unparse_literal(clause: Value) -> str:
 
 @unparse.register(Range)
 def unparse_range(clause: Range) -> str:
-    return f"[{clause.lower!r}-{clause.upper!r}]"
+    return f"[{repr(clause.lower)[1:-1]}-{repr(clause.upper)[1:-1]}]"
 
 
 @unparse.register(Empty)
