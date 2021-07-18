@@ -19,6 +19,7 @@ from bootpeg.apegs.boot import (
     Transform,
     Reference,
     Rule,
+    Parser,
 )
 
 
@@ -58,7 +59,7 @@ sys.setrecursionlimit(30000)
 # Some fixes due to errors in the original grammar
 peg_grammar = r"""
 # Hierarchical syntax
-Grammar    <- (Spacing Definition)+ !. # EndOfFile
+Grammar    <- (Spacing Definition)+ EndOfFile
 Definition <- Identifier LEFTARROW Expression Spacing
 
 Expression <- Sequence (SLASH Sequence)*
@@ -106,7 +107,12 @@ EndOfFile <- !.
 def test_parse_reference():
     """Parse the PEG reference grammar"""
     parse = create_parser(peg_grammar, dialect=peg)
-    assert parse(peg_grammar)
+    # reference PEG does not understand results, but bootpeg requires them
+    parse = Parser(
+        Rule(parse.rules[0].name, Transform(parse.rules[0].sub_clause, "()")),
+        *parse.rules[1:],
+    )
+    assert parse(peg_grammar) == ()
 
 
 def test_parse_short():

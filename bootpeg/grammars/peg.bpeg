@@ -61,12 +61,12 @@ atom:
     | "''" | '""' { Empty() }
     | "." { Any(1) }
     | class
-    | literal=literal { Value(literal) }
+    | literal=literal { Value(unescape(literal)) }
     | name=identifier !(spacing ('<-' | '←')) { Reference(name) }
 
 class:
     | "[" range "]"
-    | "[" ~ *ranges=range+ "]" { Sequence(*ranges) }
+    | "[" ~ *ranges=range+ "]" { Choice(*ranges) }
 range:
     | first=char "-" last=char { Range(first, last) }
     | char=char { Value(char) }
