@@ -359,6 +359,7 @@ def _(clause: Reference[D], _globals: dict) -> MatchClause[D]:
                     match = memo[at, name] = new_match
                     old_end = new_match.end
                 else:
+                    assert match is not None
                     return match
         else:
             if child_match is None:
