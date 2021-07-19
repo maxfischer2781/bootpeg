@@ -1,4 +1,4 @@
-from typing import Union, Sequence, Tuple, Optional, Any as AnyT, Dict, Generic
+from typing import Union, Tuple, Optional, Any as AnyT, Dict, Generic
 
 from ..typing import D, R
 from .clauses import Rule
@@ -37,9 +37,7 @@ def context(source: D, index: int) -> Tuple[str, str]:
 class ParseFailure(Exception):
     __slots__ = ("message", "source", "index", "path")
 
-    def __init__(
-        self, message: str, source: D, index: int, path: Tuple[str, ...]
-    ):
+    def __init__(self, message: str, source: D, index: int, path: Tuple[str, ...]):
         self.message = message
         self.source = source
         self.index = index
@@ -111,6 +109,7 @@ class Parser(Generic[D, R]):
     """
     Parser to transform some input by matching ``rules`` and applying ``actions``
     """
+
     @property
     def top(self) -> str:
         return self._top
@@ -137,6 +136,7 @@ class Grammar(Generic[D]):
     """
     Grammar describing how to match some input using ``rules``
     """
+
     def __init__(self, *rules: Rule[D]):
         self.rules = rules
 
