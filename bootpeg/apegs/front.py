@@ -144,6 +144,8 @@ class Grammar(Generic[D]):
     Grammar describing how to match some input using ``rules``
     """
 
+    __slots__ = ("rules",)
+
     def __init__(self, *rules: Rule[D]):
         self.rules = rules
 
