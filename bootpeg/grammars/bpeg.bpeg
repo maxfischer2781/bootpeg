@@ -36,9 +36,9 @@ choice:
     | sequence
 
 sequence:
-    | *head=(capture spaces)+ "~" ~ spaces tail=sequence { Sequence(*head, Entail(tail)) }
+    | *head=(capture spaces)+ "~" ~ *tail=(spaces capture)+ { Sequence(*head, Entail(*tail)) }
     | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
-    | "~" ~ spaces tail=sequence { Entail(tail) }
+    | "~" ~ *tail=(spaces capture)+ { Entail(*tail) }
     | capture
 
 capture:

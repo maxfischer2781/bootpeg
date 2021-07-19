@@ -34,9 +34,9 @@ action_body:
     | "{" action_body ~ "}"
 
 sequence:
-    | *head=(capture spacing)+ "~" ~ spacing tail=sequence { Sequence(*head, Entail(tail)) }
+    | *head=(capture spacing)+ "~" ~ *tail=(spacing capture)+ { Sequence(*head, Entail(*tail)) }
     | head=capture *tail=(spacing capture)+ { Sequence(head, *tail) }
-    | "~" ~ spacing tail=sequence { Entail(tail) }
+    | "~" ~ *tail=(spacing capture)+ { Entail(*tail) }
     | capture
 
 capture:
