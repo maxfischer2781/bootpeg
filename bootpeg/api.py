@@ -5,11 +5,11 @@ from types import MappingProxyType
 import importlib_resources
 
 from .utility import grammar_resource
-from .apegs.boot import apegs_globals, Parser, Grammar, Clause
+from .apegs.boot import apegs_actions, Parser, Grammar, Clause
 from .typing import R, D, BootPegParser
 
 
-bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_globals
+bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_actions
 
 
 class Dialect(Protocol[D]):

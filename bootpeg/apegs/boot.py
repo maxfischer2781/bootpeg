@@ -38,7 +38,7 @@ def apply(__func: str, **captures) -> Transform:
     )
 
 
-apegs_globals = {
+apegs_actions = {
     clause.__name__: clause
     for clause in (
         Value,
@@ -256,9 +256,9 @@ boot_parser = Parser(
         "expr",
         Reference("choice"),
     ),
-    **apegs_globals,
+    **apegs_actions,
 )
 
 bpeg_parser = boot_parser(
     importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
-).parser(**apegs_globals)
+).parser(**apegs_actions)

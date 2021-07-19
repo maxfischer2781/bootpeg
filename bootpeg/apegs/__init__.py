@@ -20,7 +20,7 @@ from .front import (
     Parser,
 )
 from .boot import (
-    apegs_globals,
+    apegs_actions,
     bpeg_parser,
 )
 
@@ -45,6 +45,6 @@ __all__ = [
     "Grammar",
     "Parser",
     # boot
-    "apegs_globals",
+    "apegs_actions",
     "bpeg_parser",
 ]
