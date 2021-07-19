@@ -126,7 +126,7 @@ class Parser(Generic[D, R]):
     def __call__(self, source: D) -> R:
         try:
             return unpack(
-                self._match_top(of=source, at=0, memo={}, rules=self._match_rules)[-1]
+                self._match_top(of=source, at=0, memo={}, rules=self._match_rules)
             )
         except (MatchFailure, FatalMatchFailure) as mf:
             raise report(source, mf)
