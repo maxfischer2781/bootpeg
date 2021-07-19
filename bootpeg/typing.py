@@ -28,5 +28,5 @@ class Domain(Protocol):
     def __getitem__(self: D, item: slice) -> D:
         raise NotImplementedError
 
-    def __le__(self: D, other: D) -> bool:
+    def __lt__(self: D, other: D) -> bool:
         raise NotImplementedError

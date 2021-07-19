@@ -8,18 +8,19 @@ from ..utility import slotted
 
 
 Clause = Union[
-    "Value",
-    "Empty",
-    "Any",
-    "Sequence",
-    "Choice",
-    "Repeat",
-    "Not",
-    "And",
-    "Entail",
-    "Capture",
-    "Transform",
-    "Reference",
+    "Value[D]",
+    "Range[D]",
+    "Empty[D]",
+    "Any[D]",
+    "Sequence[D]",
+    "Choice[D]",
+    "Repeat[D]",
+    "Not[D]",
+    "And[D]",
+    "Entail[D]",
+    "Capture[D]",
+    "Transform[D]",
+    "Reference[D]",
 ]
 
 
