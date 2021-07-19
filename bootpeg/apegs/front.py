@@ -100,7 +100,7 @@ def unpack(match: Match) -> AnyT:
         )
     elif not match.results:
         raise ValueError(
-            f"found no resulting match after parsing\n"
+            "found no resulting match after parsing\n"
             "hint: transform empty matches to a literal True or () to indicate success"
         )
     else:

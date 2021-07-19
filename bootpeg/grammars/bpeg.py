@@ -59,7 +59,7 @@ def unparse(clause: Union[Clause, Parser, Grammar]) -> str:
 
 @unparse.register(Parser)
 @unparse.register(Grammar)
-def unparse_literal(clause: Union[Parser, Grammar]) -> str:
+def unparse_grammar(clause: Union[Parser, Grammar]) -> str:
     return "\n\n".join(unparse(rule) for rule in clause.rules)
 
 
@@ -94,7 +94,7 @@ def unparse_sequence(clause: Sequence) -> str:
 
 
 @unparse.register(Entail)
-def unparse_sequence(clause: Entail) -> str:
+def unparse_entail(clause: Entail) -> str:
     return f"~ {_wrapped(clause.sub_clause, clause)}"
 
 
@@ -125,7 +125,7 @@ def unparse_capture(clause: Capture) -> str:
 
 
 @unparse.register(Transform)
-def unparse_capture(clause: Transform) -> str:
+def unparse_transform(clause: Transform) -> str:
     return f"{unparse(clause.sub_clause)} {{{clause.action}}}"
 
 

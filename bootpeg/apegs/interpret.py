@@ -31,7 +31,6 @@ from .clauses import (
     Capture,
     Transform,
     Reference,
-    Rule,
 )
 
 

@@ -1,7 +1,6 @@
 """
 Minimal parser required to bootstrap entire bootpeg parser
 """
-import sys
 import string
 
 import importlib_resources
