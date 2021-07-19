@@ -85,7 +85,8 @@ def _(clause) -> Set[str]:
 
 
 @discover_captures.register(Sequence)
-def _(clause: Sequence) -> Set[str]:
+@discover_captures.register(Entail)
+def _(clause: Union[Sequence, Entail]) -> Set[str]:
     return set.union(*map(discover_captures, clause.sub_clauses))
 
 
@@ -103,8 +104,7 @@ def _(clause: Choice) -> Set[str]:
 
 
 @discover_captures.register(Repeat)
-@discover_captures.register(Entail)
-def _(clause: Union[Repeat, Entail]) -> Set[str]:
+def _(clause: Repeat) -> Set[str]:
     return discover_captures(clause.sub_clause)
 
 
@@ -225,6 +225,24 @@ def _(clause: Sequence[D], _globals: dict) -> MatchClause[D]:
     return do_match
 
 
+@match_clause.register(Entail)
+def _(clause: Entail[D], _globals: dict) -> MatchClause[D]:
+    head_do_match, *sub_do_matches = (
+        match_clause(sub_clause, _globals) for sub_clause in clause.sub_clauses
+    )
+
+    def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
+        try:
+            match = head_do_match(of, at, memo, rules)
+            for sub_do_match in sub_do_matches:
+                match += sub_do_match(of, match.end, memo, rules)
+            return match
+        except MatchFailure as mf:
+            raise FatalMatchFailure(mf.at, mf.clause) from mf
+
+    return do_match
+
+
 @match_clause.register(Choice)
 def _(clause: Choice[D], _globals: dict) -> MatchClause[D]:
     match_sub_clauses = tuple(
@@ -281,19 +299,6 @@ def _(clause: And[D], _globals: dict) -> MatchClause[D]:
     def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
         match_sub_clause(of, at, memo, rules)
         return Match(at, 0)
-
-    return do_match
-
-
-@match_clause.register(Entail)
-def _(clause: Entail[D], _globals: dict) -> MatchClause[D]:
-    match_sub_clause = match_clause(clause.sub_clause, _globals)
-
-    def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
-        try:
-            return match_sub_clause(of, at, memo, rules)
-        except MatchFailure as mf:
-            raise FatalMatchFailure(at, clause) from mf
 
     return do_match
 

@@ -92,7 +92,9 @@ def unparse_sequence(clause: Sequence) -> str:
 
 @unparse.register(Entail)
 def unparse_entail(clause: Entail) -> str:
-    return f"~ {_wrapped(clause.sub_clause, clause)}"
+    return "~ " + " ".join(
+        _wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses
+    )
 
 
 @unparse.register(Choice)

@@ -75,6 +75,16 @@ class Sequence(Generic[D]):
 
 
 @slotted
+class Entail(Generic[D]):
+    """Mark ``sub_clauses`` as inevitable by the match so far, making failure fatal"""
+
+    __slots__ = ("sub_clauses",)
+
+    def __init__(self, *sub_clauses: "Clause[D]"):
+        self.sub_clauses = sub_clauses
+
+
+@slotted
 class Choice(Generic[D]):
     """A choice of clauses, matching the first matching clause of ``sub_clauses``"""
 
@@ -107,16 +117,6 @@ class Not(Generic[D]):
 @slotted
 class And(Generic[D]):
     """The lookahead of a clause, matching with the ``sub_clause`` without advancing"""
-
-    __slots__ = ("sub_clause",)
-
-    def __init__(self, sub_clause: "Clause[D]"):
-        self.sub_clause = sub_clause
-
-
-@slotted
-class Entail(Generic[D]):
-    """Mark ``sub_clause`` as inevitable by the match so far, making failure fatal"""
 
     __slots__ = ("sub_clause",)
 
