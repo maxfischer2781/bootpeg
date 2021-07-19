@@ -66,9 +66,9 @@ def neg(*clauses: Clause):
     return Sequence(*(Not(clause) for clause in clauses), Any(1))
 
 
-spaces = Choice(Value(" "), Empty())
+spaces: Choice[str] = Choice(Value(" "), Empty())
 
-boot_parser = Parser(
+boot_parser: Parser[str, Grammar] = Parser(
     Rule(
         "top",
         Sequence(
@@ -259,6 +259,6 @@ boot_parser = Parser(
     **apegs_actions,
 )
 
-bpeg_parser = boot_parser(
+bpeg_parser: Parser[str, Grammar] = boot_parser(
     importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
 ).parser(**apegs_actions)

@@ -14,12 +14,12 @@ bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_actions
 
 class Dialect(Protocol[D]):
     unparse: Callable[[Union[Parser, Grammar, Clause]], str]
-    parse: Parser[str, Parser]
+    parse: Parser[str, Grammar]
 
 
 def create_parser(
     source: str,
-    dialect: Union[Dialect[str], Parser[str, Parser]],
+    dialect: Union[Dialect[str], Parser[str, Grammar]],
     actions: Mapping[str, Callable] = MappingProxyType({}),
 ) -> Parser[D, R]:
     """

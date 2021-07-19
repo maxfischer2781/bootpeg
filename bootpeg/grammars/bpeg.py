@@ -138,7 +138,7 @@ def unparse_rule(clause: Rule) -> str:
     return f"{clause.name}:\n{body}"
 
 
-parse: Parser[str, Parser] = import_parser(
+parse: Parser[str, Grammar] = import_parser(
     __name__,
     dialect=bpeg_parser,
     actions=bootpeg_actions,

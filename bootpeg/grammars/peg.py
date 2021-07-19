@@ -142,7 +142,7 @@ def unescape(literal: str) -> str:
     return literal.encode("latin-1", "backslashreplace").decode("unicode-escape")
 
 
-parse: Parser[str, Parser] = import_parser(
+parse: Parser[str, Grammar] = import_parser(
     __name__,
     dialect=bpeg,
     actions={**bootpeg_actions, "unescape": unescape},
