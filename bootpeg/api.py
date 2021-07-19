@@ -29,8 +29,8 @@ def create_parser(
     :param dialect: the `bootpeg` parser compatible with the grammar
     :param actions: the actions to use for the new parser
     """
-    dialect: Parser = getattr(dialect, "parse", dialect)
-    grammar = dialect(source)
+    parser: Parser = getattr(dialect, "parse", dialect)
+    grammar = parser(source)
     if not isinstance(grammar, Grammar):
         raise TypeError(
             f"expected parsing to return a {Grammar.__name__}, got {grammar}"
