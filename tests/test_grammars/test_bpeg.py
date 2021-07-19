@@ -3,7 +3,7 @@ import pytest
 from bootpeg import create_parser
 from bootpeg.grammars import bpeg
 
-from bootpeg.apegs.boot import (
+from bootpeg.apegs import (
     Value,
     Range,
     Any,
@@ -18,8 +18,8 @@ from bootpeg.apegs.boot import (
     Transform,
     Reference,
     Rule,
+    ParseFailure,
 )
-from bootpeg.apegs.front import ParseFailure
 
 
 clauses = [

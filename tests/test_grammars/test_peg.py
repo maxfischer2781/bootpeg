@@ -4,7 +4,7 @@ import pytest
 
 from bootpeg import create_parser
 from bootpeg.grammars import peg
-from bootpeg.apegs.boot import (
+from bootpeg.apegs import (
     Value,
     Range,
     Any,
