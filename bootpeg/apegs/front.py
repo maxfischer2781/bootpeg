@@ -1,10 +1,10 @@
 from typing import Union, Sequence, Tuple, Optional, Any as AnyT, Dict, Generic
 
 from ..typing import D
+from .clauses import Rule
 from .interpret import (
     MatchFailure,
     FatalMatchFailure,
-    Rule,
     Reference,
     MatchClause,
     Match,
@@ -22,7 +22,7 @@ def as_str(source: Union[str, bytes]):
 
 
 def context(source: Sequence, index: int) -> Tuple[str, str]:
-    """Provide the context of ``source`` around ``index`` """
+    """Provide the context of ``source`` around ``index``"""
     if isinstance(source, (str, bytes)):
         new_line = "\n" if isinstance(source, str) else b"\n"
         line_start = source.rfind(new_line, 0, index) + 1
