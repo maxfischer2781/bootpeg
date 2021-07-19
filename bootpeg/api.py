@@ -1,4 +1,5 @@
-from typing import Mapping, Callable, Protocol, Union
+from typing import Mapping, Callable, Union
+from typing_extensions import Protocol
 from types import MappingProxyType
 
 import importlib_resources
