@@ -1,6 +1,6 @@
 from typing import Union, Sequence, Tuple, Optional, Any as AnyT, Dict, Generic
 
-from ..typing import D
+from ..typing import D, R
 from .clauses import Rule
 from .interpret import (
     MatchFailure,
@@ -15,13 +15,13 @@ from .interpret import (
 AnyMatchFailure = Union[MatchFailure, FatalMatchFailure]
 
 
-def as_str(source: Union[str, bytes]):
+def as_str(source: Union[str, bytes]) -> str:
     if isinstance(source, str):
         return source
     return source.decode("latin-1")
 
 
-def context(source: Sequence, index: int) -> Tuple[str, str]:
+def context(source: D, index: int) -> Tuple[str, str]:
     """Provide the context of ``source`` around ``index``"""
     if isinstance(source, (str, bytes)):
         new_line = "\n" if isinstance(source, str) else b"\n"
@@ -38,7 +38,7 @@ class ParseFailure(Exception):
     __slots__ = ("message", "source", "index", "path")
 
     def __init__(
-        self, message: str, source: Sequence, index: int, path: Tuple[str, ...]
+        self, message: str, source: D, index: int, path: Tuple[str, ...]
     ):
         self.message = message
         self.source = source
@@ -66,7 +66,7 @@ def walk_failures(err: AnyMatchFailure):
             break
 
 
-def report(source: Sequence, err: AnyMatchFailure):
+def report(source: D, err: AnyMatchFailure):
     failures = list(walk_failures(err))
     failure, cause = (
         (failures[-1], None)
@@ -107,21 +107,24 @@ def unpack(match: Match) -> AnyT:
         return match.results[0]
 
 
-class Parser(Generic[D]):
+class Parser(Generic[D, R]):
+    """
+    Parser to transform some input by matching ``rules`` and applying ``actions``
+    """
     @property
     def top(self) -> str:
         return self._top
 
-    def __init__(self, __top: Rule[D], *rules: Rule[D], **_globals: AnyT):
+    def __init__(self, __top: Rule[D], *rules: Rule[D], **actions: AnyT):
         self._top = __top.name
         self.rules = (__top, *rules)
-        self.globals = _globals
-        self._match_top = match_clause(Reference(self.top), _globals)
+        self.actions = actions
+        self._match_top = match_clause(Reference(self.top), actions)
         self._match_rules: Dict[str, MatchClause] = {
-            rule.name: match_clause(rule.sub_clause, _globals) for rule in self.rules
+            rule.name: match_clause(rule.sub_clause, actions) for rule in self.rules
         }
 
-    def __call__(self, source: D) -> AnyT:
+    def __call__(self, source: D) -> R:
         try:
             return unpack(
                 self._match_top(of=source, at=0, memo={}, rules=self._match_rules)[-1]
@@ -131,8 +134,12 @@ class Parser(Generic[D]):
 
 
 class Grammar(Generic[D]):
+    """
+    Grammar describing how to match some input using ``rules``
+    """
     def __init__(self, *rules: Rule[D]):
         self.rules = rules
 
-    def parser(self, **_globals: AnyT) -> Parser:
+    def parser(self, **_globals: AnyT) -> Parser[D, AnyT]:
+        """Create a :py:class:`Parser` for the grammar"""
         return Parser(*self.rules, **_globals)
