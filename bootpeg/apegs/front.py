@@ -109,6 +109,7 @@ class Parser(Generic[D, R]):
     """
     Parser to transform some input by matching ``rules`` and applying ``actions``
     """
+
     __slots__ = ("_top", "rules", "actions", "_match_top", "_match_rules")
 
     @property

@@ -15,7 +15,7 @@ def test_bootstrap():
         parser = create_parser(source, parser, bootpeg_actions)
 
 
-@pytest.mark.parametrize("protocol", list(range(2, pickle.HIGHEST_PROTOCOL+1)))
+@pytest.mark.parametrize("protocol", list(range(2, pickle.HIGHEST_PROTOCOL + 1)))
 def test_pickle(protocol):
     """Ensure that parsers can be pickled"""
     source = importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
