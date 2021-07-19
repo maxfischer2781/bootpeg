@@ -109,6 +109,7 @@ class Parser(Generic[D, R]):
     """
     Parser to transform some input by matching ``rules`` and applying ``actions``
     """
+    __slots__ = ("_top", "rules", "actions", "_match_top", "_match_rules")
 
     @property
     def top(self) -> str:
@@ -130,6 +131,12 @@ class Parser(Generic[D, R]):
             )
         except (MatchFailure, FatalMatchFailure) as mf:
             raise report(source, mf)
+
+    def __getstate__(self):
+        return {"rules": self.rules, "actions": self.actions}
+
+    def __setstate__(self, state):
+        self.__init__(*state["rules"], **state["actions"])
 
 
 class Grammar(Generic[D]):
