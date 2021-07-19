@@ -4,35 +4,43 @@ import pytest
 
 from bootpeg import create_parser
 from bootpeg.grammars import peg
-from bootpeg.pika.front import (
-    Rule,
-    Literal,
-    Nothing,
-    Anything,
+from bootpeg.apegs import (
+    Value,
+    Range,
+    Any,
+    Empty,
     Sequence,
     Choice,
     Repeat,
-    Not,
     And,
+    Not,
+    Entail,
+    Capture,
+    Transform,
     Reference,
-    Range,
-    Delimited,
+    Rule,
+    Parser,
 )
 
 
 roundtrip_clauses = [
-    Nothing(),
-    Anything(1),
-    *(Literal(literal) for literal in ("A", "x", "ß", " ")),
-    Sequence(Literal("A"), Literal("B"), Literal("A")),
-    Sequence(Literal(" "), Literal(" ")),
-    Choice(Literal("a"), Literal("b"), Nothing()),
-    Repeat(Literal("x")),
-    Repeat(Sequence(Literal("x"), Literal("y"), Literal("z"))),
-    Not(Literal("a")),
-    And(Literal("a")),
+    Empty(),
+    Any(1),
+    *(Value(literal) for literal in ("A", "x", "ß", " ")),
+    Sequence(Value("A"), Value("B"), Value("A")),
+    Sequence(Value(" "), Value(" ")),
+    Choice(Value("a"), Value("b"), Empty()),
+    Repeat(Value("x")),
+    Repeat(Sequence(Value("x"), Value("y"), Value("z"))),
+    Not(Value("a")),
+    And(Value("a")),
     Reference("some_rule"),
     Range("a", "b"),
+    Entail(Value("a"), Value("b")),
+    Sequence(Value("head"), Entail(Value("a"), Value("b"))),
+    Capture(Value("expr"), "name", True),
+    Capture(Value("expr"), "name", False),
+    Transform(Value("body"), "{True}"),
 ]
 
 
@@ -41,29 +49,8 @@ def test_roundtrip(clause):
     clause = clause
     literal = peg.unparse(clause)
     assert literal
-    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
-    assert parsed_rule.sub_clauses[0] == clause
-
-
-emulated_clauses = [
-    (
-        Delimited(Literal("A"), Literal("B")),
-        Sequence(
-            Literal("A"),
-            Choice(Repeat(Sequence(Not(Literal("B")), Anything(1))), Nothing()),
-            Literal("B"),
-        ),
-    ),
-]
-
-
-@pytest.mark.parametrize("clause, emulation", emulated_clauses)
-def test_roundtrip_emulate(clause, emulation):
-    clause = clause
-    literal = peg.unparse(clause)
-    assert literal
-    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").clauses["parse_test"]
-    assert parsed_rule.sub_clauses[0] == emulation
+    parsed_rule: Rule = peg.parse(f"parse_test <- {literal}\n").rules[0]
+    assert parsed_rule.sub_clause == clause
 
 
 sys.setrecursionlimit(30000)
@@ -72,7 +59,7 @@ sys.setrecursionlimit(30000)
 # Some fixes due to errors in the original grammar
 peg_grammar = r"""
 # Hierarchical syntax
-Grammar    <- (Spacing Definition)+ # EndOfFile
+Grammar    <- (Spacing Definition)+ EndOfFile
 Definition <- Identifier LEFTARROW Expression Spacing
 
 Expression <- Sequence (SLASH Sequence)*
@@ -119,8 +106,13 @@ EndOfFile <- !.
 
 def test_parse_reference():
     """Parse the PEG reference grammar"""
-    parse = create_parser(peg_grammar, actions={}, dialect=peg, top="Grammar")
-    assert parse(peg_grammar)
+    parse = create_parser(peg_grammar, dialect=peg)
+    # reference PEG does not understand results, but bootpeg requires them
+    parse = Parser(
+        Rule(parse.rules[0].name, Transform(parse.rules[0].sub_clause, "()")),
+        *parse.rules[1:],
+    )
+    assert parse(peg_grammar) == ()
 
 
 def test_parse_short():

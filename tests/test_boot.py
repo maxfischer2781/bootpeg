@@ -1,30 +1,25 @@
+import importlib_resources
+import pickle
+
 import pytest
 
-from bootpeg.pika import boot
+from bootpeg import create_parser, bootpeg_actions
+from bootpeg.apegs import boot
 
 
 def test_bootstrap():
-    boot_peg = boot.boot_path.read_text()
-    parser = boot.min_parser
+    source = importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
+    parser = boot.boot_parser
     # ensure each parser handles itself
+    for _ in range(5):
+        parser = create_parser(source, parser, bootpeg_actions)
+
+
+@pytest.mark.parametrize("protocol", list(range(2, pickle.HIGHEST_PROTOCOL + 1)))
+def test_pickle(protocol):
+    """Ensure that parsers can be pickled"""
+    source = importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
+    parser = boot.boot_parser
     for _ in range(2):
-        parser = boot.boot(parser, boot_peg)
-
-
-def test_escalate():
-    full_peg = boot.full_path.read_text()
-    parser = boot.bootpeg()
-    for _ in range(2):
-        parser = boot.boot(parser, full_peg)
-
-
-def test_features():
-    full_peg = boot.full_path.read_text()
-    parser = boot.boot(boot.bootpeg(), full_peg)
-    opt_repeat = boot.boot(parser, 'rule:\n    | [ " "+ ]\n')
-    non_repeat = boot.boot(parser, 'rule:\n    | " "*\n')
-    assert opt_repeat.clauses == non_repeat.clauses
-    with pytest.raises(TypeError):
-        boot.boot(parser, 'rule:\n    | [ " "+ ] { .missing }\n')
-    with pytest.raises(TypeError):
-        boot.boot(parser, 'rule:\n    | extra=([ " "+ ]) { () }\n')
+        parser = pickle.loads(pickle.dumps(parser, protocol=protocol))
+        parser = create_parser(source, parser, bootpeg_actions)

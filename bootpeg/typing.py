@@ -28,17 +28,5 @@ class Domain(Protocol):
     def __getitem__(self: D, item: slice) -> D:
         raise NotImplementedError
 
-    def __le__(self: D, other: D) -> bool:
-        raise NotImplementedError
-
-
-class BootPegParser(Protocol[D_contra, R]):
-    """
-    Protocol for all :py:mod:`bootpeg` parsers creating parsers
-    """
-
-    def __call__(self, source: D_contra, top: str = "top") -> R:
-        """
-        Parse a parser ``source`` with a known ``top`` rule
-        """
+    def __lt__(self: D, other: D) -> bool:
         raise NotImplementedError

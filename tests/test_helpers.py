@@ -1,6 +1,6 @@
 import pytest
 
-from bootpeg.pika.front import unescape
+from bootpeg.grammars.peg import unescape
 
 
 named_escapes = [

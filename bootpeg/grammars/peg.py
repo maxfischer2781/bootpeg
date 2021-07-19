@@ -1,109 +1,151 @@
 from typing import Union
 from functools import singledispatch
 
-from ..pika.peg import (
-    Clause,
-    Nothing,
-    Anything,
-    Literal,
+from ..apegs.boot import (
+    Value,
+    Range,
+    Any,
+    Empty,
     Sequence,
     Choice,
     Repeat,
-    Not,
     And,
+    Not,
+    Entail,
+    Capture,
+    Transform,
     Reference,
+    Rule,
+    Clause,
     Parser,
+    Grammar,
 )
-from ..pika.act import Capture, Rule
-from ..pika.front import Range, Delimited
-from ..api import bootpeg_actions, bootpeg_post, import_parser
-from ..typing import BootPegParser
+from ..api import bootpeg_actions, import_parser
 from . import bpeg
 
 
+precedence = {
+    clause: prec
+    for prec, clauses in enumerate(
+        (
+            [Value, Range, Any, Empty, Reference],
+            [Not, And],
+            [Repeat, Capture],
+            [Sequence, Entail],
+            [Transform],
+            [Choice],
+        )
+    )
+    for clause in clauses
+}
+
+
+def _wrapped(clause: Clause, parent: Clause) -> str:
+    return (
+        f"({unparse(clause)})"
+        if precedence[type(parent)] < precedence[type(clause)]
+        else unparse(clause)
+    )
+
+
 @singledispatch
-def unparse(clause: Union[Clause, Parser], top=True) -> str:
-    """Format a ``clause`` according to bootpeg standard grammar"""
+def unparse(clause: Union[Clause, Parser, Grammar]) -> str:
+    """Format a ``clause`` according to PEG"""
     raise NotImplementedError(f"Cannot unparse {clause!r} as bpeg")
 
 
-@unparse.register(Nothing)
-def unparse_nothing(clause: Nothing, top=True) -> str:
-    return '""'
+@unparse.register(Parser)
+@unparse.register(Grammar)
+def unparse_grammar(clause: Union[Parser, Grammar]) -> str:
+    return "\n\n".join(unparse(rule) for rule in clause.rules)
 
 
-@unparse.register(Anything)
-def unparse_anything(clause: Anything, top=True) -> str:
-    return "." * clause.length
-
-
-@unparse.register(Literal)
-def unparse_literal(clause: Literal, top=True) -> str:
+@unparse.register(Value)
+def unparse_literal(clause: Value) -> str:
     return repr(clause.value)
 
 
-@unparse.register(Sequence)
-def unparse_sequence(clause: Sequence, top=True) -> str:
-    children = " ".join(
-        unparse(sub_clause, top=False) for sub_clause in clause.sub_clauses
-    )
-    return f"({children})" if not top else children
+@unparse.register(Range)
+def unparse_range(clause: Range) -> str:
+    return f"[{repr(clause.lower)[1:-1]}-{repr(clause.upper)[1:-1]}]"
 
 
-@unparse.register(Choice)
-def unparse_choice(clause: Choice, top=True) -> str:
-    children = " / ".join(
-        unparse(sub_clause, top=False) for sub_clause in clause.sub_clauses
-    )
-    return f"({children})" if not top else children
+@unparse.register(Empty)
+def unparse_empty(clause: Empty) -> str:
+    return '""'
 
 
-@unparse.register(Repeat)
-def unparse_repeat(clause: Repeat, top=True) -> str:
-    return unparse(clause.sub_clauses[0], top=False) + "+"
-
-
-@unparse.register(Not)
-def unparse_not(clause: Not, top=True) -> str:
-    return "!" + unparse(clause.sub_clauses[0], top=False)
-
-
-@unparse.register(And)
-def unparse_and(clause: And, top=True) -> str:
-    return "&" + unparse(clause.sub_clauses[0], top=False)
+@unparse.register(Any)
+def unparse_any(clause: Any) -> str:
+    return "." * clause.length
 
 
 @unparse.register(Reference)
-def unparse_reference(clause: Reference, top=True) -> str:
-    return clause.target
+def unparse_reference(clause: Reference) -> str:
+    return clause.name
+
+
+@unparse.register(Sequence)
+def unparse_sequence(clause: Sequence) -> str:
+    return " ".join(_wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses)
+
+
+@unparse.register(Entail)
+def unparse_entail(clause: Entail) -> str:
+    return "~ " + " ".join(
+        _wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses
+    )
+
+
+@unparse.register(Choice)
+def unparse_choice(clause: Choice) -> str:
+    return " / ".join(_wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses)
+
+
+@unparse.register(Repeat)
+def unparse_repeat(clause: Repeat) -> str:
+    return _wrapped(clause.sub_clause, clause) + "+"
+
+
+@unparse.register(Not)
+def unparse_not(clause: Not) -> str:
+    return "!" + _wrapped(clause.sub_clause, clause)
+
+
+@unparse.register(And)
+def unparse_and(clause: And) -> str:
+    return "&" + _wrapped(clause.sub_clause, clause)
 
 
 @unparse.register(Capture)
-def unparse_capture(clause: Capture, top=True) -> str:
-    return f"{clause.name}={unparse(clause.sub_clauses[0], top=False)}"
+def unparse_capture(clause: Capture) -> str:
+    var = "*" if clause.variadic else ""
+    return f"{var}{clause.name}={_wrapped(clause.sub_clause, clause)}"
+
+
+@unparse.register(Transform)
+def unparse_transform(clause: Transform) -> str:
+    return f"{unparse(clause.sub_clause)} {{{clause.action}}}"
 
 
 @unparse.register(Rule)
-def unparse_rule(clause: Rule, top=True) -> str:
-    return f"{unparse(clause.sub_clauses[0])} {{{clause.action.literal}}}"
+def unparse_rule(clause: Rule) -> str:
+    sub_clause = clause.sub_clause
+    if isinstance(sub_clause, Choice):
+        body = "\n".join(f"    / {unparse(case)}" for case in sub_clause.sub_clauses)
+        return f"{clause.name} <-\n{body}"
+    else:
+        return f"{clause.name} <- {unparse(sub_clause)}"
 
 
-@unparse.register(Range)
-def unparse_range(clause: Range, top=True) -> str:
-    assert len(clause.first) == len(clause.last) == 1, "range borders must be chars"
-    return f"[{clause.first}-{clause.last}]"
+def unescape(literal: str) -> str:
+    """Evaluate Python escape sequences in a string, e.g. ``r"\n"`` to ``"\n"``"""
+    # see https://stackoverflow.com/a/57192592/5349916
+    return literal.encode("latin-1", "backslashreplace").decode("unicode-escape")
 
 
-@unparse.register(Delimited)
-def unparse_delimited(clause: Delimited, top=True) -> str:
-    first, last = (unparse(c, top=False) for c in clause.sub_clauses)
-    children = f"{first} (!{last} .)* {last}"
-    return f"({children})" if not top else children
-
-
-parse: BootPegParser[str, BootPegParser] = import_parser(
+parse: Parser[str, Grammar] = import_parser(
     __name__,
     dialect=bpeg,
-    actions=bootpeg_actions,
-    post=bootpeg_post,
+    actions={**bootpeg_actions, "unescape": unescape},
 )

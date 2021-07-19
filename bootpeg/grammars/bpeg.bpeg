@@ -1,64 +1,67 @@
 # Full PEG+Actions parser
 # =======================
-nothing:
-    | "''" | '""' { Nothing() }
-anything:
-    | "." { Anything() }
+top:
+    | *rules=( rule | ~ end_line )+ !. { Grammar(*rules) }
+
+# repeatedly needed clauses
 end_line:
-    | "
-" {Discard()}
-
-literal:
-    | ('"' :: '"') | ("'" :: "'") { Literal(.*[1:-1]) }
-range:
-    | first=literal spaces "-" ~ spaces last=literal { Range(.first.value, .last.value) }
-delimited:
-    | start=expr spaces "::" ~ spaces stop=expr { Delimited(.start, .stop) }
-
-terminal:
-    | term=(range | nothing | literal | anything) { .term }
-
+    | spaces [ "#" (!\n .)* ] ( \n | !. )
 spaces:
     | " "*
 identifier:
-    | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
+    | ( "a"-"z" | "A"-"Z" | "_" ) ( "a"-"z" | "A"-"Z" | "0"-"9" | "_" )*
+literal:
+    | '"' body=(!'"' .)+ '"' | "'" body=(!"'" .)+ "'" {body}
 
-optional:
-    | "[" ~ spaces expr=expr spaces "]" { either(.expr, Nothing()) }
-group:
-    | "(" ~ spaces expr=expr spaces ")" { .expr }
-choice:
-    | try=expr spaces "|" ~ spaces else=expr { either(.try, .else) }
-sequence:
-    | head=expr spaces tail=expr { chain(.head, .tail) }
-repeat:
-    | expr=expr spaces "+" { Repeat(.expr) }
-    | expr=expr spaces "*" { either(Repeat(.expr), Nothing()) }
-capture:
-    | name=identifier spaces "=" ~ spaces expr=(reference | group) { Capture(.name, .expr) }
-reference:
-    | name=identifier { Reference(.name) }
-reject:
-    | "!" ~ spaces expr=expr { Not(.expr) }
-require:
-    | "&" ~ spaces expr=expr { And(.expr) }
-commit:
-    | "~" ~ spaces expr=expr { require(.expr) }
-expr:
-    | expr=(choice | require | sequence | repeat | delimited | capture | reference | group | optional | reject | commit | terminal) { .expr }
-
+# rule and action parsing
 rule:
-    | "|" spaces expr=expr spaces action=("{" :: "}") { Rule(.expr, Action(.action[1:-1])) }
-    | "|" spaces expr=expr { Rule(.expr, Action(".*[0]")) }
+    | name=identifier ":" end_line ~ *cases=(" " spaces "|" ~ spaces rule_case end_line)+ { Rule(name, Choice(*cases)) }
+    | name=identifier ":" ~ expr=rule_case { Rule(name, expr) }
+rule_case:
+    | expr=expr spaces action=action { Transform(expr, action) }
+    | expr
+action:
+    | "{" body=action_body+ ~ "}" { body }
+action_body:
+    | (!"{" !"}" .)+
+    | "{" action_body ~ "}"
 
-comment:
-    | "#" :: end_line { Discard() }
-blank:
-    | spaces end_line { Discard() }
-define:
-    | name=identifier ":" ~ spaces end_line rules=rules { (.name, .rules) }
-rules:
-    | " " spaces try=rule spaces end_line else=rules { either(.try, .else) }
-    | " " spaces rule=rule spaces end_line { .rule }
-top:
-    | ( define | comment | blank )+ { .* }
+# clause producing expressions
+# the top expression, recursively matching all other expressions
+expr:
+    | choice
+
+choice:
+    | head=sequence *tail=(spaces "|" ~ spaces sequence)+ { Choice(head, *tail) }
+    | sequence
+
+sequence:
+    | *head=(capture spaces)+ "~" ~ *tail=(spaces capture)+ { Sequence(*head, Entail(*tail)) }
+    | head=capture *tail=(spaces capture)+ { Sequence(head, *tail) }
+    | "~" ~ *tail=(spaces capture)+ { Entail(*tail) }
+    | capture
+
+capture:
+    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
+    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
+    | repeat
+
+repeat:
+    | expr=prefix "+" { Repeat(expr) }
+    | expr=prefix "*" { Choice(Repeat(expr), Empty()) }
+    | prefix
+
+prefix:
+    | "!" spaces expr=prefix { Not(expr) }
+    | "&" spaces expr=prefix { And(expr) }
+    | "(" spaces ~ expr spaces ")"
+    | "[" spaces ~ expr=expr spaces "]" { Choice(expr, Empty()) }
+    | atom
+
+atom:
+    | "''" | '""' { Empty() }
+    | "." { Any(1) }
+    | "\n" { Value("\n") }
+    | lower=literal spaces "-" ~ spaces upper=literal { Range(lower, upper) }
+    | literal=literal { Value(literal) }
+    | name=identifier { Reference(name) }

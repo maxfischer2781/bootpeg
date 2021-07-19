@@ -2,78 +2,80 @@
 # Adapted from "Parsing Expression Grammars: A Recognition-Based Syntactic Foundation"
 #               by Bryan Ford
 # ===============================
-# terminals
-nothing:
-    | "''" | '""' { Nothing() }
-anything:
-    | "." { Anything() }
+top:
+    | *rules=(definition | spacing)+ ~!. { Grammar(*rules) }
 
-literal:
-    | ('"' :: '"') | ("'" :: "'") { Literal(unescape(.*[1:-1])) }
-class:
-    | "[" expr=range "]" { .expr }
-range:
-    | head=range tail=range { either(.head, .tail) }
-    | first=char "-" last=char { Range(.first, .last) }
-    | char=char { Literal(.char) }
-char:
-    | ( "\'" | '\"' | "\[" | "\]" | "\\" ) { .*[1] }
-    | ( "\n" | "\r" | "\t" ) { unescape(.*) }
-    | "\" ("0" - "2") ("0" - "7") ("0" - "7") { unescape(.*) }
-    | "\" ("0" - "7") ["0" - "7"] { unescape(.*) }
-    | "\u" hexdigit hexdigit hexdigit hexdigit { unescape(.*) }
-    | "\U" hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit { unescape(.*) }
-    | (! "\") (! "[") (! "]") . { .* }
-hexdigit:
-    | ("0" - "9") | ("a" - "f") | ("A" - "F") { Discard() }
-
-terminal:
-    | term=(class | nothing | literal | anything) { .term }
-
-# separators
-end_line:
-    | "
-"
-comment:
-    | "#" :: end_line
 spacing:
-    | (" " | "	" | end_line | comment)* { Discard() }
-
+    | ((" " | "	")* [ "#" (!\n .)* ] [\n | !.])+
 identifier:
-    | ( ( "a" - "z" ) | ( "A" - "Z" ) | "_" )+ { .* }
-
-# match clauses
-expression:
-    | try=sequence spacing "/" spacing else=expression { either(.try, .else) }
-    | expr=sequence spacing { .expr }
-sequence:
-    | head=prefixed spacing tail=sequence { chain(.head, .tail) }
-    | expr=prefixed { .expr }
-prefixed:
-    | "&" expr=suffixed { And(.expr) }
-    | "!" expr=suffixed { Not(.expr) }
-    | expr=suffixed { .expr }
-suffixed:
-    | expr=primary "?" { either(.expr, Nothing()) }
-    | expr=primary "*" { either(Repeat(.expr), Nothing()) }
-    | expr=primary "+" { Repeat(.expr) }
-    | expr=primary { .expr }
-# exclude "<-" to avoid matching a <- b c <- d as a <- (b c)
-primary:
-    | name=identifier !(spacing ('<-' | '←')) { Reference(.name) }
-    | '(' spacing expr=expression spacing ')' { .expr }
-    | term=terminal { .term }
+    | ( "a"-"z" | "A"-"Z" | "_" ) ( "a"-"z" | "A"-"Z" | "0"-"9" | "_" )*
+literal:
+    | '"' body=(!'"' .)+ '"' | "'" body=(!"'" .)+ "'" {body}
 
 # definitions
-rule:
-    | expr=expression spacing action=("{" :: "}") { Rule(.expr, Action(.action[1:-1])) }
-    | expr=expression { Rule(.expr, Action(".*[0]")) }
-rules:
-    | try=rule spacing "/" spacing else=rules { either(.try, .else) }
-    | rule=rule { .rule }
-
 definition:
-    | name=identifier spacing ('<-' | '←') spacing ["/" spacing] rules=rules { (.name, .rules) }
+    | name=identifier spacing ('<-' | '←') spacing ["/" spacing] ~ expr=expr { Rule(name, expr) }
 
-top:
-    | (spacing definition)+ spacing { .* }
+# match clauses
+expr:
+    | choice
+
+choice:
+    | head=transform *tail=(spacing "/" ~ spacing transform)+ { Choice(head, *tail) }
+    | transform
+
+transform:
+    | expr=sequence spacing action=action { Transform(expr, action) }
+    | sequence
+action:
+    | "{" body=action_body+ ~ "}" { body }
+action_body:
+    | (!"{" !"}" .)+
+    | "{" action_body ~ "}"
+
+sequence:
+    | *head=(capture spacing)+ "~" ~ *tail=(spacing capture)+ { Sequence(*head, Entail(*tail)) }
+    | head=capture *tail=(spacing capture)+ { Sequence(head, *tail) }
+    | "~" ~ *tail=(spacing capture)+ { Entail(*tail) }
+    | capture
+
+capture:
+    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
+    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
+    | repeat
+
+repeat:
+    | expr=prefix "+" { Repeat(expr) }
+    | expr=prefix "*" { Choice(Repeat(expr), Empty()) }
+    | expr=prefix "?" { Choice(expr, Empty()) }
+    | prefix
+
+prefix:
+    | "!" spacing expr=prefix { Not(expr) }
+    | "&" spacing expr=prefix { And(expr) }
+    | "(" spacing ~ expr spacing ")"
+    | atom
+
+# exclude "identifier <-" to avoid matching a <- b c <- d as a <- (b c)
+atom:
+    | "''" | '""' { Empty() }
+    | "." { Any(1) }
+    | class
+    | literal=literal { Value(unescape(literal)) }
+    | name=identifier !(spacing ('<-' | '←')) { Reference(name) }
+
+class:
+    | "[" range "]"
+    | "[" ~ *ranges=range+ "]" { Choice(*ranges) }
+range:
+    | first=char "-" last=char { Range(first, last) }
+    | char=char { Value(char) }
+char:
+    | escaped=( "\'" | '\"' | "\[" | "\]" | "\\" ) { escaped[-1:] }
+    | space=( "\n" | "\r" | "\t" ) { unescape(space) }
+    | octal=("\" "0"-"2" "0"-"7" "0"-"7" | "\" "0"-"7" ["0"-"7"]) { unescape(octal) }
+    | u16=("\u" hexdigit hexdigit hexdigit hexdigit) { unescape(u16) }
+    | u32=("\U" hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit hexdigit) { unescape(u32) }
+    | !"\" !"[" !"]" .
+hexdigit:
+    | "0"-"9" | "a"-"f" | "A"-"F"
