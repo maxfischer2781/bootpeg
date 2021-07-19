@@ -16,7 +16,7 @@ from typing_extensions import Protocol
 
 from functools import singledispatch
 
-from ..typing import D
+from ..typing import D, D_contra
 from .clauses import (
     Value,
     Range,
@@ -151,8 +151,10 @@ Memo = MutableMapping[Tuple[int, str], Optional[Match]]
 Rules = Mapping[str, "MatchClause"]
 
 
-class MatchClause(Protocol[D]):
-    def __call__(self, of: D, at: int, memo: Memo, rules: Rules) -> Tuple[int, Match]:
+class MatchClause(Protocol[D_contra]):
+    def __call__(
+        self, of: D_contra, at: int, memo: Memo, rules: Rules
+    ) -> Tuple[int, Match]:
         ...
 
 
