@@ -6,7 +6,7 @@ import importlib_resources
 
 from .utility import grammar_resource
 from .apegs.boot import apegs_actions, Parser, Grammar, Clause
-from .typing import R, D, BootPegParser
+from .typing import R, D
 
 
 bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_actions
@@ -21,7 +21,7 @@ def create_parser(
     source: str,
     dialect: Union[Dialect[str], Parser[str, Parser]],
     actions: Mapping[str, Callable] = MappingProxyType({}),
-) -> BootPegParser[D, R]:
+) -> Parser[D, R]:
     """
     Create a parser from a `source` grammar
 
@@ -42,7 +42,7 @@ def import_parser(
     location: str,
     dialect,
     actions: Mapping[str, Callable] = MappingProxyType({}),
-) -> BootPegParser[D, R]:
+) -> Parser[D, R]:
     """
     Import a parser from a grammar at a `location`
 

@@ -21,7 +21,6 @@ from ..apegs.boot import (
     Grammar,
 )
 from ..api import bootpeg_actions, import_parser
-from ..typing import BootPegParser
 from . import bpeg
 
 
@@ -143,7 +142,7 @@ def unescape(literal: str) -> str:
     return literal.encode("latin-1", "backslashreplace").decode("unicode-escape")
 
 
-parse: BootPegParser[str, BootPegParser] = import_parser(
+parse: Parser[str, Parser] = import_parser(
     __name__,
     dialect=bpeg,
     actions={**bootpeg_actions, "unescape": unescape},

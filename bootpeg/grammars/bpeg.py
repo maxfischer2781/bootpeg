@@ -25,7 +25,6 @@ from ..apegs.boot import (
     bpeg_parser,
 )
 from ..api import bootpeg_actions, import_parser
-from ..typing import BootPegParser
 
 
 precedence = {
@@ -139,7 +138,7 @@ def unparse_rule(clause: Rule) -> str:
     return f"{clause.name}:\n{body}"
 
 
-parse: BootPegParser[str, BootPegParser] = import_parser(
+parse: Parser[str, Parser] = import_parser(
     __name__,
     dialect=bpeg_parser,
     actions=bootpeg_actions,
