@@ -12,15 +12,18 @@ comment: ``'#' ... \n``
 
     A line comment, discarding the entire line starting at the ``#`` symbol.
 
-define: ``name ':' \n INDENT rule+``
+define: ``name ':' \n INDENT case+``
 
-    A named collection of ordered rules.
-    If more than one rule matches, the uppermost matching rule is preferred.
+    A rule collection of ordered match cases.
+    If more than one case matches, the uppermost matching case is preferred.
 
-rule: ``'|' e [ '{' action '}' ] \n``
+case: ``'|' e [ '{' action '}' ] \n``
 
-    A rule to match any input matching the expression ``e``.
+    A case to match any input matching the expression ``e``.
     The optional ``action`` defines how to translate the matched input.
+
+    While a `case` is similar to `choice`, its higher precedence allows to
+    concisely define separate actions per case.
 
 Compound Expressions
 --------------------
@@ -117,6 +120,10 @@ anything: ``.``
 Literal Terminals
 -----------------
 
+newline: ``\n``
+
+    A literal newline.
+
 literal: ``" ... "`` or ``' ... '``
 
     Match any input exactly equal to the literal.
@@ -130,5 +137,7 @@ range: ``literal1 - literal2``
     ::
 
         "a" - "z"
+
+    Literals may be longer than one, but must be of same length.
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
