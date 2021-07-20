@@ -39,36 +39,33 @@
 
    contributing
 
-`bootpeg` is a PEG parser for creating parsers – including itself.
+`bootpeg` is a PEG parser for creating parsers from grammars – including itself.
 By default, it supports a modified EBNF with actions akin to `PEP 617`_.
 
 .. code-block:: python3
 
    >>> # recreate the bootpeg parser from itself
-   >>> from bootpeg.api import import_parser, PikaActions
+   >>> from bootpeg.api import import_parser, bootpeg_actions
    >>> from bootpeg.grammars import bpeg
    >>> parse_bpeg = bpeg.parse
    >>> for _ in range(5):
    ...     parse_bpeg = import_parser(
-   ...         bpeg.__name__, actions=PikaActions, dialect=parse_bpeg
+   ...         bpeg.__name__, dialect=parse_bpeg, actions=bootpeg_actions
    ...     )
+   >>> print(bpeg.unparse(parse_bpeg))
 
-Unlike most other Python PEG parsers which are top-down parsers,
-`bootpeg` provides a bottom-up `Pika parser`_:
-it handles left-recursive grammars natively,
-allows recovering partial parse results,
-and is guaranteed to run in linear time.
-Like any PEG parser, `bootpeg` automatically
-creates unambiguous grammars,
-supports infinite lookahead,
-and allows to express grammars comfortably.
+Unlike most other Python PEG parsers,
+``bootpeg`` is built for one job and one job only:
+Define how to transform input into a runtime representation.
+There is
+no fancy operator overloading,
+no custom AST formats,
+no clever PEG extensions,
+no whitespace special casing,
+no nothing.
 
-* Native support for left-recursion and left-associativity.
-* Builtin error reporting covering multiple failures.
-* Automatic parser generation from a multitude of meta-grammars.
-
-This makes it straightforward to implement your own custom grammars without
-worrying about their implementation.
+``bootpeg`` supports left-recursive PEG parsing with actions.
+That's it.
 
 Indices and tables
 ==================
@@ -79,4 +76,3 @@ Indices and tables
 
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
-.. _`Pika parser`: https://arxiv.org/abs/2005.06444
