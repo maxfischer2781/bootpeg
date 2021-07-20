@@ -3,21 +3,21 @@ The ``bpeg`` Grammar
 
 The ``bpeg`` grammar is modelled after Python's own parser grammar as per `PEP 617`_.
 It provides indentation based rules, a EBNF-like expression grammar,
-and efficient literal declarations.
+and convenient action declarations.
 
 Top-level rules
 ---------------
 
-comment: ``'#' :: NEW_LINE``
+comment: ``'#' ... \n``
 
     A line comment, discarding the entire line starting at the ``#`` symbol.
 
-define: ``name ':' NEW_LINE INDENT rule+``
+define: ``name ':' \n INDENT rule+``
 
     A named collection of ordered rules.
     If more than one rule matches, the uppermost matching rule is preferred.
 
-rule: ``'|' e [ '{' action '}' ] NEW_LINE``
+rule: ``'|' e [ '{' action '}' ] \n``
 
     A rule to match any input matching the expression ``e``.
     The optional ``action`` defines how to translate the matched input.
@@ -56,7 +56,7 @@ not: ``!e``
     Match if ``e`` does not match. Matches with zero width.
     ::
 
-        ! NEW_LINE
+        !\n
 
 and: ``&e``
 
@@ -79,10 +79,9 @@ any: ``e*``
 
 commit: ``~ e``
 
-    Match ``e`` or fail. Always succeeds, may be zero width.
+    Match ``e`` or fail the entire parse attempt.
 
-    Failure to match ``e`` records the failure but proceeds "as if" ``e`` matched.
-    Useful for accurate failure reports.
+    Useful to provide helpful reports on where parsing failed.
     ::
 
         # fail on empty and mismatched parentheses
@@ -91,9 +90,12 @@ commit: ``~ e``
     Binds tighter than sequences and less tight than choices:
     ``~e1 e2 | e3`` is equivalent to ``(~e1 ~e2) | e3``.
 
-capture: ``name=e``
+capture: ``name=e`` or ``*name=e``
 
-    Capture the result of matching ``e`` with a given ``name`` for use in a rule action.
+    Capture the result of matching ``e`` with a given ``name`` for use in an action.
+
+    Without ``*``, capture a single result and fail if no or more results are available.
+    With ``*``, capture any results available as a tuple.
 
 Special Terminals
 -----------------
@@ -107,13 +109,15 @@ nothing: ``''`` or ``""``
 anything: ``.``
 
     Match any input of width one.
-    May lead to excessive matches;
-    prefer `range` or `delimited` literals.
+    Useful with `not` to capture any *but* some input::
+
+        # literal quotes enclosing anything but quotes
+        '"' (!'"' .)* '"'
 
 Literal Terminals
 -----------------
 
-literal: ``" :: "`` or ``' :: '``
+literal: ``" ... "`` or ``' ... '``
 
     Match any input exactly equal to the literal.
     ::
@@ -126,16 +130,5 @@ range: ``literal1 - literal2``
     ::
 
         "a" - "z"
-
-delimited: ``literal1 :: literal2``
-
-    Match `literal1` followed by the `literal2` with arbitrary matches in between.
-    More efficient version of ``literal1 ( !literal2 . ) literal2``.
-    ::
-
-        literal:
-            | '"' :: '"'
-            | "'" :: "'"
-
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
