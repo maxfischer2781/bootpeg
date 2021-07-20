@@ -25,21 +25,22 @@ and how it is to be interpreted:
 .. code::
 
     # bootpeg uses # for line comments
-    # a named rule – can be referred to other in rules by name
+    # the first rule must match the entire input, usually via other rules
+    top:
+        | scientific | integer
+
+    # a named rule – can be referred to in other rules by name
     integer:
-        | [ "-" ] "1" - "9" ("0" - "9")* { Integer(.*) }
-    #     ^       ^                        ^ interpret match as Integer
-    #     |       \ match a digit between 1 and 9 followed by arbitrary many digits
-    #     \ match an optional leading sign
+        | literal=([ "-" ] "1"-"9" "0"-"9"*) { Integer(literal) }
+    #     ^        ^       ^                  ^ interpret match as Integer
+    #     |        |       \ match a digit between 1 and 9 followed by arbitrary many digits
+    #     |        \ match an optional leading sign
+    #     \ capture (parts of) match to transform them
 
     scientific:
-        | base=integer ("E" | "e")  exponent=integer { .base * (10 ** .exponent) }
+        | base=integer ("E" | "e")  exponent=integer { base * (10 ** exponent) }
     #     ^             ^ either E or e may be used for the exponent
     #     \ capture part of the match to interpret it separately
-
-    # the top rule – must match the entire input, usually via other rules
-    top:
-        | (scientific | integer)
 
 The *Actions* are callables and constants needed to transform input.
 You can define actions freely using any code you like;
@@ -54,8 +55,9 @@ of the grammar's names to the respective action:
     ...     'Integer': int
     ... }
 
-In addition, ``bootpeg`` allows to apply a ``post``\ processing action.
-By default, this just returns the result of parsing as-is.
+The Grammar uses *captures* like ``base=integer`` to select part of the input.
+The *transformations* like ``{ Integer(literal) }`` define how captured values
+are passed to Actions.
 
 Boot the PEG
 ============
@@ -79,13 +81,12 @@ Simply pass in the grammar, the actions defined, and the dialect
     >>> from bootpeg import create_parser
     >>> from bootpeg.grammars import bpeg
     >>> example_grammar = """\
+    ... top:
+    ...     | scientific | integer
     ... integer:
     ...     | [ "-" ] "1" - "9" ("0" - "9")* { Integer(.*) }
     ... scientific:
     ...     | base=integer ("E" | "e")  exponent=integer { .base * (10 ** .exponent) }
-    ... top:
-    ...     | scientific
-    ...     | integer
     ... """
     >>> example_actions = {'Integer': int}
     >>> parse = create_parser(example_grammar, bpeg, example_actions)
@@ -110,5 +111,3 @@ See :ref:`grammar_actions` on how to best match the tasks of grammars and action
 
 .. [#anysequence] `bootpeg` itself can handle arbitrary input sequences,
                   not just strings/text.
-                  Since this is a niche use-case, the high-level convenience
-                  functions assume textual grammars.
