@@ -40,6 +40,9 @@ clauses = [
     Capture(Value("expr"), "name", True),
     Capture(Value("expr"), "name", False),
     Transform(Value("body"), "{True}"),
+    Value("\n"),
+    Value(r"\n"),
+    Value(r"\\n"),
 ]
 
 

@@ -64,7 +64,13 @@ def unparse_grammar(clause: Union[Parser, Grammar]) -> str:
 
 @unparse.register(Value)
 def unparse_literal(clause: Value) -> str:
-    return repr(clause.value)
+    if clause.value == "\n":
+        return r"\n"
+    if '"' in clause.value:
+        if "'" in clause.value:
+            return '"' + clause.value.replace("'", r"\'") + '"'
+        return f"'{clause.value}'"
+    return f'"{clause.value}"'
 
 
 @unparse.register(Range)
