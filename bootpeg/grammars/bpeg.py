@@ -43,11 +43,11 @@ precedence = {
 
 
 def _wrapped(clause: Clause, parent: Clause) -> str:
-    return (
-        f"({unparse(clause)})"
-        if precedence[type(parent)] < precedence[type(clause)]
-        else unparse(clause)
-    )
+    literal = unparse(clause)
+    if literal[0] == "[" or precedence[type(parent)] >= precedence[type(clause)]:
+        return literal
+    else:
+        return f"({unparse(clause)})"
 
 
 @singledispatch
