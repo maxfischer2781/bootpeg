@@ -9,6 +9,7 @@ from .apegs.boot import apegs_actions, Parser, Grammar, Clause
 from .typing import R, D
 
 
+#: the default actions to create a :py:mod:`bootpeg` parser
 bootpeg_actions: Mapping[str, Callable[..., Clause]] = apegs_actions
 
 

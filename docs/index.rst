@@ -45,12 +45,12 @@ By default, it supports a modified EBNF with actions akin to `PEP 617`_.
 .. code-block:: python3
 
    >>> # recreate the bootpeg parser from itself
-   >>> from bootpeg.api import import_parser, bootpeg_actions
+   >>> from bootpeg import import_parser, actions
    >>> from bootpeg.grammars import bpeg
    >>> parse_bpeg = bpeg.parse
    >>> for _ in range(5):
    ...     parse_bpeg = import_parser(
-   ...         bpeg.__name__, dialect=parse_bpeg, actions=bootpeg_actions
+   ...         bpeg.__name__, dialect=parse_bpeg, actions=actions
    ...     )
    >>> print(bpeg.unparse(parse_bpeg))
 
