@@ -28,7 +28,7 @@ clauses = [
     *(Value(literal) for literal in ("A", "x", "ß", " ")),
     Sequence(Value("A"), Value("B"), Value("A")),
     Sequence(Value(" "), Value(" ")),
-    Choice(Value("a"), Value("b"), Empty()),
+    Choice(Choice(Value("a"), Value("b")), Empty()),
     Repeat(Value("x")),
     Repeat(Sequence(Value("x"), Value("y"), Value("z"))),
     Not(Value("a")),

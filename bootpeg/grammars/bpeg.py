@@ -101,6 +101,14 @@ def unparse_entail(clause: Entail) -> str:
 
 @unparse.register(Choice)
 def unparse_choice(clause: Choice) -> str:
+    if isinstance(clause.sub_clauses[-1], Empty):
+        return (
+            "["
+            + " | ".join(
+                _wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses[:-1]
+            )
+            + "]"
+        )
     return " | ".join(_wrapped(sub_clause, clause) for sub_clause in clause.sub_clauses)
 
 
