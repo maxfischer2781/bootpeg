@@ -317,14 +317,13 @@ def _(clause: Capture[D], _globals: dict) -> MatchClause[D]:
         def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
             match = match_sub_clause(of, at, memo, rules)
             results = match.results
-            if not match.results:
-                return Match(
-                    match.at, match.length, captures=((name, of[match.at : match.end]),)
-                )
+            if not results:
+                result = of[match.at : match.end]
             elif len(results) == 1:
-                return Match(match.at, match.length, captures=((name, results[0]),))
+                result = results[0]
             else:
                 raise MatchFailure(at, clause)
+            return Match(match.at, match.length, captures=((name, result),))
 
     return do_match
 
