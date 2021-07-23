@@ -309,11 +309,14 @@ def _(clause: Capture[D], _globals: dict) -> MatchClause[D]:
     name = clause.name
 
     if clause.variadic:
+
         def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
             match = match_sub_clause(of, at, memo, rules)
             results = match.results
             return Match(match.at, match.length, captures=((name, results),))
+
     else:
+
         def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
             match = match_sub_clause(of, at, memo, rules)
             results = match.results
