@@ -30,37 +30,35 @@ By default, it supports a modified EBNF with actions akin to `PEP 617`_.
 .. code-block:: python3
 
    >>> # recreate the bootpeg parser from itself
-   >>> from bootpeg.api import import_parser, PikaActions
+   >>> from bootpeg import import_parser, actions
    >>> from bootpeg.grammars import bpeg
    >>> parse_bpeg = bpeg.parse
    >>> for _ in range(5):
    ...     parse_bpeg = import_parser(
-   ...         bpeg.__name__, actions=PikaActions, dialect=parse_bpeg
+   ...         bpeg.__name__, dialect=parse_bpeg, actions=actions
    ...     )
+   >>> print(bpeg.unparse(parse_bpeg))
 
-Unlike most other Python PEG parsers which are top-down parsers,
-`bootpeg` provides a bottom-up `Pika parser`_:
-it handles left-recursive grammars natively,
-allows recovering partial parse results,
-and is guaranteed to run in linear time.
-Like any PEG parser, `bootpeg` automatically
-creates unambiguous grammars,
-supports infinite lookahead,
-and allows to express grammars comfortably.
+Unlike most other Python PEG parsers,
+``bootpeg`` is built for one job and one job only:
+Define how to transform input into a runtime representation.
+There is
+no fancy operator overloading,
+no custom AST formats,
+no clever PEG extensions,
+no whitespace special casing,
+no nothing.
 
-* Native support for left-recursion and left-associativity.
-* Builtin error reporting covering multiple failures.
-* Automatic parser generation from a multitude of meta-grammars.
+``bootpeg`` supports left-recursive PEG parsing with actions.
+That's it.
 
-This makes it straightforward to implement your own custom grammars without
-worrying about their implementation.
 To get started using or contributing to `bootpeg`,
 head straight to the `bootpeg documentation`_.
 
 Do I need a bigger boot?
 ------------------------
 
-> Some people, when confronted with a problem, think "I know, I'll use self-writing parsers." Now they have recursive problems.
+> Some people, when confronted with a problem, think "I know, I'll use self-writing parsers." Now they have problems in problems.
 
 If you need a battle-hardened, production ready parser suite
 then `pyparsing`_ should be your first choice.
@@ -77,5 +75,4 @@ So far it is only lifting itself.
 
 .. _`PEP 617`: https://www.python.org/dev/peps/pep-0617/
 .. _`pyparsing`: https://pyparsing-docs.readthedocs.io/
-.. _`Pika parser`: https://arxiv.org/abs/2005.06444
 .. _`bootpeg documentation`: https://bootpeg.readthedocs.io

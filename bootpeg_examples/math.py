@@ -115,16 +115,24 @@ interpret = import_parser(__name__, dialect=bpeg, actions=math_actions)
 prompt = ">>> "
 
 
-if __name__ == "__main__":
+def repl():
     print(f"Examples: math [bootpeg {bootpeg_version}]", file=sys.stderr)
-    print("Type 'exit' to exit", file=sys.stderr)
+    print(__doc__.strip(), file=sys.stderr)
+    print("Type 'exit' to exit, 'grammar' to show the grammar", file=sys.stderr)
     while True:
         try:
             expression = input(prompt)
             if expression == "exit":
                 break
-            print(interpret(expression))
+            elif expression == "grammar":
+                print(bpeg.unparse(interpret))
+            else:
+                print(interpret(expression))
         except (KeyboardInterrupt, EOFError):
             break
         except Exception as err:
             print(f"{type(err).__name__}: {err}")
+
+
+if __name__ == "__main__":
+    repl()

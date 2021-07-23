@@ -1,6 +1,6 @@
 import pytest
 
-from bootpeg import create_parser
+from bootpeg import create_parser, actions
 from bootpeg.grammars import bpeg
 
 from bootpeg.apegs import (
@@ -28,7 +28,7 @@ clauses = [
     *(Value(literal) for literal in ("A", "x", "ß", " ")),
     Sequence(Value("A"), Value("B"), Value("A")),
     Sequence(Value(" "), Value(" ")),
-    Choice(Value("a"), Value("b"), Empty()),
+    Choice(Choice(Value("a"), Value("b")), Empty()),
     Repeat(Value("x")),
     Repeat(Sequence(Value("x"), Value("y"), Value("z"))),
     Not(Value("a")),
@@ -40,6 +40,9 @@ clauses = [
     Capture(Value("expr"), "name", True),
     Capture(Value("expr"), "name", False),
     Transform(Value("body"), "{True}"),
+    Value("\n"),
+    Value(r"\n"),
+    Value(r"\\n"),
 ]
 
 
@@ -79,3 +82,12 @@ def test_not_anything():
     assert not_anything_parse("b") == "b"
     with pytest.raises(ParseFailure):
         not_anything_parse("bb")
+
+
+def test_unparse():
+    """Test that unparsing produces valid grammars"""
+    parser = bpeg.parse
+    for _ in range(3):
+        prev_gram = bpeg.unparse(parser)
+        parser = create_parser(prev_gram, parser, actions)
+        assert prev_gram == bpeg.unparse(parser)

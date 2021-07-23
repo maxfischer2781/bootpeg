@@ -8,7 +8,7 @@ It provides a concise rule declaration, freeform layout and literal escape seque
 Top-level rules
 ---------------
 
-spacing: ``" "* | end_line | "#" :: end_line``
+spacing: ``["#" ... end_line]``
 
     Any amount of whitespace and line-comments is allowed
     between elements of the grammar::
@@ -17,7 +17,7 @@ spacing: ``" "* | end_line | "#" :: end_line``
             head  # first element
             then  # second element
 
-define: ``name <- ["/"] rule ("/" rule)*``
+define: ``name <- ["/"] expr ("/" expr)*``
 
     A named collection of ordered rules.
     If more than one rule matches, the leftmost matching rule is preferred.
@@ -46,6 +46,10 @@ choice: ``e1 / e2``
 
     Ordered choice, matching either ``e1`` or ``e2``.
     If both match, ``e1`` is preferred.
+
+transform: ``e { action }``
+
+    Transform the match of ``e`` using an action.
 
 group: ``( e )``
 
@@ -87,9 +91,12 @@ any: ``e*``
 
     Match ``e`` zero or several times.
 
-capture: ``name=e``
+capture: ``name=e`` or ``*name=e``
 
-    Capture the result of matching ``e`` with a given ``name`` for use in a rule action.
+    Capture the result of matching ``e`` with a given ``name`` for use in an action.
+
+    Without ``*``, capture a single result and fail if no or more results are available.
+    With ``*``, capture any results available as a tuple.
 
 Special Terminals
 -----------------
@@ -112,7 +119,7 @@ and
 Use ``\'``, ``\"``, ``\[``, ``\]``, ``\\`` for literal special characters.
 All other escape sequences are rejected.
 
-literal: ``" :: "`` or ``' :: '``
+literal: ``" ... "`` or ``' ... '``
 
     Match any input exactly equal to the literal.
     ::

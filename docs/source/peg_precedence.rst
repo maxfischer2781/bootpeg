@@ -17,11 +17,11 @@ Ordered vs. unordered Choices
 An obvious demonstration for PEG's *ordered choice* are between two terminals
 where one is a subsequence of the other::
 
-    "a" | "ab"
+    ("a" | "ab") "c"
 
 With PEG, the second choice branch can never be reached:
-Parsing ``"ab"`` will successfully match the first choice and consume ``"a"``,
-then fail because there is no rule to consume the remaining ``"b"``.
+Parsing the input ``abc`` matches with the first choice and consumes ``a``,
+then fail after the choice ``c`` is expected but ``b`` was not consumed.
 The key is that later branches in a choice are only tried if earlier branches fail;
 if a failure happens *after* the choice, there is no backtracking into the choice.
 
@@ -82,26 +82,26 @@ A common example is precedence of mathematical operations.
 For example, one can express the precedence of multiplication over addition as
 "addition clauses may contain multiplication clauses"::
 
-    addition:
-        | lhr=addition ' '* '+' ~ ' '* rhs=multiplication { add(.lhs, .rhs) }
-        | up=multiplication { .up }
-    multiplication:
-        | lhr=multiplication ' '* '*' ~ ' '* rhs=power { mul(.lhs, .rhs) }
-        | up=power { .up }
-    power:
-        | lhs=primitive ' '* '^' ~ ' '* rhs=power { mul(.lhs, .rhs) }
-        | up=primitive { .up }
-    primitive:
-        | '(' ~ exp=top ')' { .exp }
-        | "1" - "9" ("0" - "9")* { int(.*) }
     top:
         | addition
+    addition:
+        | lhr=addition ' '* '+' ~ ' '* rhs=multiplication { add(lhs, rhs) }
+        | multiplication
+    multiplication:
+        | lhr=multiplication ' '* '*' ~ ' '* rhs=power { mul(lhs, rhs) }
+        | power
+    power:
+        | lhs=primitive ' '* '^' ~ ' '* rhs=power { mul(lhs, rhs) }
+        | primitive
+    primitive:
+        | '(' ~ expr=top ')' { expr }
+        | literal=("1"-"9" "0"-"9"*) { int(literal) }
 
 This structure is called "precedence climbing":
 Every clause may contain a clause of the next precedence level
-and "climb ``up``" at the current position.
+and "climb up" at the current position.
 Notably, the ``top`` clause starts at the *lowest* precedence
-which then works its way ``up`` to the highest precedence;
+which then works its way up to the highest precedence;
 the jump back down from the highest to lowest precedence is only possible
 after advancing the position (by a literal match of an opening ``(`` or a number).
 
@@ -115,6 +115,6 @@ This allows the rule to expand in the respective direction.
     Use choice ordering for precedence, and
     left-/right-recursion for left-/right-associativity.
 
-.. [#pika] This use of left-recursion is only possible with left-recursive PEG parsers,
-           like `bootpeg`'s :term:`Pika Parser`.
+.. [#pika] This use of left-recursion is only possible with left-recursive PEG parsers.
+           The behaviour described here is known as "bounded recursion".
            Regular PEG parsers do not support such grammars/rules and require rewriting.

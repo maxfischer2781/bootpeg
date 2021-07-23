@@ -2,7 +2,7 @@ import sys
 
 import pytest
 
-from bootpeg import create_parser
+from bootpeg import create_parser, actions
 from bootpeg.grammars import peg
 from bootpeg.apegs import (
     Value,
@@ -118,3 +118,13 @@ def test_parse_reference():
 def test_parse_short():
     """Parse a single-line grammar"""
     assert peg.parse("""top <- ab ab <- a / b a <- "a" ab? b <- "b" ab?""")
+
+
+def test_unparse():
+    """Test that unparsing produces valid grammars"""
+    parser = peg.parse
+    for i in range(3):
+        prev_gram = peg.unparse(parser)
+        parser = create_parser(prev_gram, parser, {**actions, "unescape": peg.unescape})
+        # grammar is not optimal for peg when coming from bpeg
+        assert i == 0 or prev_gram == peg.unparse(parser)
