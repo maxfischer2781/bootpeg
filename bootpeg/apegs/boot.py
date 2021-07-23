@@ -30,7 +30,7 @@ def apply(__func: str, **captures) -> Transform:
     return Transform(
         Sequence(
             *(
-                Capture(clause, name, False) if not name[0] == "_" else clause
+                Capture(clause, name, False, False) if not name[0] == "_" else clause
                 for name, clause in captures.items()
             )
         ),
@@ -77,6 +77,7 @@ boot_parser: Parser[str, Grammar] = Parser(
                     Repeat(Choice(Reference("rule"), Reference("end_line"))),
                     "rules",
                     variadic=True,
+                    match=False,
                 ),
                 "Grammar(*rules)",
             ),
@@ -206,7 +207,7 @@ boot_parser: Parser[str, Grammar] = Parser(
         "capture",
         Choice(
             apply(
-                "Capture(expr, name, variadic)",
+                "Capture(expr, name, variadic, False)",
                 variadic=Choice(
                     Transform(Value("*"), "True"),
                     Transform(Empty(), "False"),

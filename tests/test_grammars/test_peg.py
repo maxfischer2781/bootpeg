@@ -38,8 +38,8 @@ roundtrip_clauses = [
     Range("a", "b"),
     Entail(Value("a"), Value("b")),
     Sequence(Value("head"), Entail(Value("a"), Value("b"))),
-    Capture(Value("expr"), "name", True),
-    Capture(Value("expr"), "name", False),
+    Capture(Value("expr"), "name", True, False),
+    Capture(Value("expr"), "name", False, False),
     Transform(Value("body"), "{True}"),
 ]
 

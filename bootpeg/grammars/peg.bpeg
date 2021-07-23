@@ -40,8 +40,8 @@ sequence:
     | capture
 
 capture:
-    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
-    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
+    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True, match=False) }
+    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False, match=False) }
     | repeat
 
 repeat:
