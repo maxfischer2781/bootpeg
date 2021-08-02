@@ -39,6 +39,8 @@ clauses = [
     Sequence(Value("head"), Entail(Value("a"), Value("b"))),
     Capture(Value("expr"), "name", True, False),
     Capture(Value("expr"), "name", False, False),
+    Capture(Value("expr"), "name", True, True),
+    Capture(Value("expr"), "name", False, True),
     Transform(Value("body"), "{True}"),
     Value("\n"),
     Value(r"\n"),
