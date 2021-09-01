@@ -108,7 +108,7 @@ you need to open and maintain a Pull Request.
 By sticking to the `bootpeg` quality criteria
 and responding to feedback on the PR.
 
-.. _open first issues: https://github.com/maxfischer2781/bootpeg/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
+.. _open first issues: https://github.com/maxfischer2781/bootpeg/contribute
 
 Managing a Pull Request
 -----------------------
