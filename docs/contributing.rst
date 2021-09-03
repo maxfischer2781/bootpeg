@@ -168,7 +168,7 @@ to stick to for every contribution:
 
   .. code-block:: bash
 
-     # use black to reformat code
+     # evaluate unittests
      python3 -m pytest
 
 * Code should be covered by unittests.
@@ -180,7 +180,7 @@ to stick to for every contribution:
 * Any user-facing feature should be documented.
   The documentation is compiled using `sphinx <sphinx home_>`_
   from the ``./docs`` directory.
-  If you contribution is similar to an existing feature,
+  If your contribution is similar to an existing feature,
   take the latter's documentation as a template;
   if not, we will discuss with you how to best approach documentation.
 
