@@ -1,6 +1,7 @@
 """
 Matching of clauses based on interpretation
 """
+
 from typing import (
     Mapping,
     MutableMapping,
@@ -152,8 +153,7 @@ Rules = Mapping[str, "MatchClause"]
 
 
 class MatchClause(Protocol[D_contra]):
-    def __call__(self, of: D_contra, at: int, memo: Memo, rules: Rules) -> Match:
-        ...
+    def __call__(self, of: D_contra, at: int, memo: Memo, rules: Rules) -> Match: ...
 
 
 @singledispatch

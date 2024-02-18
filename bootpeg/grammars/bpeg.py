@@ -1,6 +1,7 @@
 """
 The default bootpeg grammar
 """
+
 from typing import Union
 from functools import singledispatch
 

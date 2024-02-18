@@ -1,6 +1,7 @@
 """
 Abstract clauses understood by the PikaTwo parsing algorithm
 """
+
 from typing import Generic, Union
 
 from ..typing import D
