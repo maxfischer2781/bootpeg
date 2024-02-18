@@ -3,8 +3,7 @@ Minimal parser required to bootstrap entire bootpeg parser
 """
 
 import string
-
-import importlib_resources
+import importlib.resources
 
 from .clauses import (
     Value,
@@ -261,5 +260,5 @@ boot_parser: Parser[str, Grammar] = Parser(
 )
 
 bpeg_parser: Parser[str, Grammar] = boot_parser(
-    importlib_resources.read_text("bootpeg.grammars", "bpeg.bpeg")
+    importlib.resources.read_text("bootpeg.grammars", "bpeg.bpeg")
 ).parser(**apegs_actions)

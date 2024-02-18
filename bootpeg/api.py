@@ -1,8 +1,7 @@
 from typing import Mapping, Callable, Union
 from typing_extensions import Protocol
 from types import MappingProxyType
-
-import importlib_resources
+import importlib.resources
 
 from .utility import grammar_resource
 from .apegs.boot import apegs_actions, Parser, Grammar, Clause
@@ -60,5 +59,5 @@ def import_parser(
     ``bootpeg/grammars/peg.bpeg``, though the import machinery also supports other
     resource types such as zip archive members.
     """
-    source = importlib_resources.read_text(*grammar_resource(location))
+    source = importlib.resources.read_text(*grammar_resource(location))
     return create_parser(source, dialect, actions)
