@@ -136,8 +136,9 @@ def unparse_and(clause: And) -> str:
 
 @unparse.register(Capture)
 def unparse_capture(clause: Capture) -> str:
+    sep = "@" if clause.match else "="
     var = "*" if clause.variadic else ""
-    return f"{var}{clause.name}={_wrapped(clause.sub_clause, clause)}"
+    return f"{var}{clause.name}{sep}{_wrapped(clause.sub_clause, clause)}"
 
 
 @unparse.register(Transform)

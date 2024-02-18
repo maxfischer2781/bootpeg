@@ -127,14 +127,20 @@ class And(Generic[D]):
 
 @slotted
 class Capture(Generic[D]):
-    """The capturing of a clause match result with a name"""
+    """
+    The capturing of a clause match result with a name
 
-    __slots__ = ("sub_clause", "name", "variadic")
+    :param variadic: whether to capture arbitrary many results
+    :param match: whether to include information on the match
+    """
 
-    def __init__(self, sub_clause: "Clause[D]", name, variadic):
+    __slots__ = ("sub_clause", "name", "variadic", "match")
+
+    def __init__(self, sub_clause: "Clause[D]", name: str, variadic: bool, match: bool):
         self.sub_clause = sub_clause
         self.name = name
         self.variadic = variadic
+        self.match = match
 
 
 @slotted

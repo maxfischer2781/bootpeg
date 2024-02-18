@@ -66,3 +66,14 @@ and may capture no or arbitrary many results::
     sequence:
         | '[' head=fraction *tail=(',' fraction) [',']  ']' { Sequence(head, *tail) }
 
+In addition, every capture method allows to extend the results with the matched region
+by using ``@`` instead of ``=``.
+The capture then provides the attributes
+``.value`` (the original result),
+``.start`` and ``.stop`` (the indices of the matched slice),
+``.length`` (the length of the match),
+and ``.slice`` (the matched slice)::
+
+    # allow errors to point to the source code
+    div:
+        | lhs=expr rhs@('/' expr) { div(lhs, rhs.value, rhs.start, rhs.stop) }

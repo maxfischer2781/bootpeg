@@ -42,8 +42,8 @@ sequence:
     | capture
 
 capture:
-    | "*" ~ name=identifier "=" expr=repeat { Capture(expr, name, variadic=True) }
-    | name=identifier "=" ~ expr=repeat { Capture(expr, name, variadic=False) }
+    | "*" ~ name=identifier kind=("=" | "@") expr=repeat { Capture(expr, name, variadic=True, match=(kind == "@")) }
+    | name=identifier kind=("=" | "@") ~ expr=repeat { Capture(expr, name, variadic=False, match=(kind == "@")) }
     | repeat
 
 repeat:

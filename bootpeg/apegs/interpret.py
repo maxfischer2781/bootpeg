@@ -307,21 +307,26 @@ def _(clause: And[D], _globals: dict) -> MatchClause[D]:
 def _(clause: Capture[D], _globals: dict) -> MatchClause[D]:
     match_sub_clause = match_clause(clause.sub_clause, _globals)
     name = clause.name
-    variadic = clause.variadic
 
-    def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
-        match = match_sub_clause(of, at, memo, rules)
-        results = match.results
-        if variadic:
+    if clause.variadic:
+
+        def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
+            match = match_sub_clause(of, at, memo, rules)
+            results = match.results
             return Match(match.at, match.length, captures=((name, results),))
-        elif not match.results:
-            return Match(
-                match.at, match.length, captures=((name, of[match.at : match.end]),)
-            )
-        elif len(results) == 1:
-            return Match(match.at, match.length, captures=((name, results[0]),))
-        else:
-            raise MatchFailure(at, clause)
+
+    else:
+
+        def do_match(of: D, at: int, memo: Memo, rules: Rules) -> Match:
+            match = match_sub_clause(of, at, memo, rules)
+            results = match.results
+            if not results:
+                result = of[match.at : match.end]
+            elif len(results) == 1:
+                result = results[0]
+            else:
+                raise MatchFailure(at, clause)
+            return Match(match.at, match.length, captures=((name, result),))
 
     return do_match
 
