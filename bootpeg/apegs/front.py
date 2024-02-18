@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional, Any as AnyT, Dict, Generic
+from typing import Union, Tuple, Any as AnyT, Dict, Generic
 
 from ..typing import D, R
 from .clauses import Rule
@@ -131,7 +131,7 @@ class Parser(Generic[D, R]):
                 self._match_top(of=source, at=0, memo={}, rules=self._match_rules)
             )
         except (MatchFailure, FatalMatchFailure) as mf:
-            raise report(source, mf)
+            raise report(source, mf) from mf
 
     def __getstate__(self):
         return {"rules": self.rules, "actions": self.actions}
